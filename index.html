@@ -478,6 +478,8 @@ const theme = id => THEMES.find(t => t.id === id) || THEMES[0];
 // ---------- link parsing: YouTube, Google Slides/Docs/Drive, Canva, any https page ----------
 function parseLink(raw){
   let s = String(raw || "").trim(); if(!s) return null;
+  const src = s.match(/<iframe[^>]*\ssrc\s*=\s*["']([^"']+)["']/i);   // a pasted embed code: use its link
+  if(src) s = src[1].replace(/&amp;/g, "&");
   if(!/^https?:\/\//i.test(s)) s = "https://" + s;
   let u; try{ u = new URL(s); }catch(e){ return null; }
   if(u.protocol !== "https:" && u.protocol !== "http:") return null;
@@ -509,6 +511,8 @@ function parseLink(raw){
     const m = u.pathname.match(/^\/design\/([\w-]+)\/([\w-]+)/);
     if(m) return {kind:"canva", embed:`https://www.canva.com/design/${m[1]}/${m[2]}/view?embed`, open:s};
   }
+  // canva.link short links redirect to a page Canva won't show inside other sites, and a web page can't follow them
+  if(h === "canva.link") return {kind:"canvashort", embed:null, open:s};
   if(h === "vimeo.com"){
     const m = u.pathname.match(/^\/(\d+)/);
     if(m) return {kind:"vimeo", embed:`https://player.vimeo.com/video/${m[1]}`, open:s};
@@ -518,7 +522,8 @@ function parseLink(raw){
 const LINK_HELP = {
   gslides:"Google Slides: in Slides choose Share → General access → “Anyone with the link”, or File → Share → Publish to web. Use the arrows inside the slide to move through it.",
   youtube:"YouTube: any normal video link works.",
-  web:"Some websites don't allow being shown inside another page. If it stays blank, use the Open button while presenting."
+  web:"Some websites don't allow being shown inside another page. If it stays blank, use the Open button while presenting.",
+  canva:"Canva: in your design choose Share → “Anyone with the link” can view, then Share → Embed → copy the Smart embed link (or the whole embed code) and paste it here."
 };
 
 // ---------- slides ----------
@@ -563,7 +568,10 @@ function renderStage(slide, d, opts = {}){
   } else {
     const p = parseLink(slide.url);
     if(!p) el.innerHTML = `<div class="ph"><b>${TYPE_NAME[slide.type] || "Link"}</b>Paste a link in the Link box above</div>`;
-    else if(opts.thumb) el.innerHTML = `<div class="ph" style="background:${th.accent}"><b>${{gslides:"Google Slides",youtube:"▶ YouTube",gdoc:"Google Doc",gdrive:"Google Drive",canva:"Canva",vimeo:"▶ Vimeo",web:"Web page"}[p.kind]}</b>${esc(new URL(p.embed).hostname)}</div>`;
+    else if(opts.thumb) el.innerHTML = `<div class="ph" style="background:${th.accent}"><b>${{gslides:"Google Slides",youtube:"▶ YouTube",gdoc:"Google Doc",gdrive:"Google Drive",canva:"Canva",canvashort:"Canva",vimeo:"▶ Vimeo",web:"Web page"}[p.kind]}</b>${esc(new URL(p.embed || p.open).hostname)}</div>`;
+    else if(p.kind === "canvashort") el.innerHTML = `<div class="ph" style="background:#7d2ae8"><b>Canva short link</b>
+      <span style="max-width:62cqw">Canva doesn't let short <i>canva.link</i> links show inside other pages.<br>In Canva, open your design → <b style="font-size:inherit">Share</b> → set “Anyone with the link” → <b style="font-size:inherit">Embed</b>, copy the <b style="font-size:inherit">Smart embed link</b> and paste it in the Link box.</span>
+      <a href="${esc(p.open)}" target="_blank" rel="noopener" style="color:#fff;font-weight:700;margin-top:1cqw">Open in Canva ↗</a></div>`;
     else el.innerHTML = `<iframe src="${esc(p.embed)}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
   }
   if(cap && !["title","text","blank"].includes(slide.type)) el.insertAdjacentHTML("beforeend", `<div class="cap">${esc(cap)}</div>`);
@@ -705,7 +713,7 @@ function renderCanvas(){
   const isLink = ["gslides","video","link"].includes(s.type);
   $("slideUrl").hidden = $("slideUrlL").hidden = !isLink; if(isLink) $("slideUrl").value = s.url || "";
   $("edHint").textContent = s.type === "gslides" ? LINK_HELP.gslides
-    : s.type === "link" ? LINK_HELP.web
+    : s.type === "link" ? (/^canva/.test((parseLink(s.url) || {}).kind) ? LINK_HELP.canva : LINK_HELP.web)
     : s.type === "text" || s.type === "title" ? "Click the text on the slide to change it. Add text boxes, shapes and sticky notes from the bar above."
     : "Double-click a text box, shape or sticky note to type in it. Drag to move it, and pull its corner to resize it.";
   markSel(); renderSelBar();
@@ -768,6 +776,7 @@ function addLinkSlide(raw, title){
   $("linkErr").textContent = "";
   insertSlide(makeSlide(p.kind === "gslides" ? "gslides" : p.kind === "youtube" ? "video" : "link", {url:raw.trim(), title:(title || "").trim()}));
   if(p.kind === "gslides") toast("Google Slides added. Make sure it's shared with “Anyone with the link”.");
+  if(p.kind === "canvashort") toast("Short canva.link links can't show inside a slide. Use Canva's Share → Embed link instead.");
   return true;
 }
 $("linkAdd").onclick = () => { if(addLinkSlide($("linkUrl").value, $("linkTitle").value)){ $("linkUrl").value = $("linkTitle").value = ""; $("linkUrl").placeholder = "Paste a link: YouTube, Google Slides, Canva, a Google Doc or any website"; } };
