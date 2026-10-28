@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classboard</title>
+<style>
+:root{
+  --bg:#f4f1ea; --panel:#fff; --ink:#1f2a2e; --muted:#6b7478; --line:#e2ddd2;
+  --accent:#2f6f62; --accent-ink:#fff; --danger:#b3412f; --shadow:0 8px 28px rgba(20,30,30,.14);
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--panel);padding:8px 14px;border-radius:10px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--danger)}
+.btn.sm{padding:4px 10px;font-size:14px}
+.hidden{display:none!important}
+header.top{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+header.top h1{font-size:20px;margin:0;flex:1}
+header.top h1 span{color:var(--accent)}
+main{padding:20px;max-width:1200px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+.card .thumb{aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-weight:700;padding:10px;text-align:center;cursor:pointer}
+.card .meta{padding:10px 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.card .meta b{flex:1 1 100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .meta small{color:var(--muted);flex:1}
+.empty{color:var(--muted);padding:40px;text-align:center;border:2px dashed var(--line);border-radius:var(--radius)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+h2{font-size:17px;margin:24px 0 10px}
+
+/* editor: tools (left) · toolbar, slide, link bar (middle) · slides (right) */
+#topActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.deckName{border:1px solid transparent;border-radius:8px;padding:6px 10px;font-weight:700;width:220px;background:transparent}
+.deckName:hover,.deckName:focus{border-color:var(--line);background:#fff}
+.saveState{color:var(--muted);font-size:14px;margin-right:6px;white-space:nowrap}
+#editor{display:grid;grid-template-columns:min(280px,70vw) minmax(0,1fr) 210px;height:calc(100vh - 57px)}
+#editor.noLeft{grid-template-columns:0 minmax(0,1fr) 210px}
+#editor.noLeft #edLeft,#editor:not(.noLeft) #edLeftShow{display:none}
+#edLeft{border-right:1px solid var(--line);background:#f3efe6;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+#edLeft>.hint{padding:0 12px;margin:0 0 8px}
+#edDockHost{flex:1;min-height:0;display:flex;flex-direction:column}
+#edMain{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;padding:12px 16px;gap:10px}
+.edBar{display:flex;align-items:center;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:5px 8px;flex-wrap:wrap}
+.edBar .tbtn{display:flex;align-items:center;gap:6px;border:0;background:none;padding:6px 9px;border-radius:9px;font-weight:600;font-size:15px}
+.edBar .tbtn:hover,.edBar .iconBtn:hover{background:#f0ede6}
+.edBar .tbtn .i{width:24px;height:24px;border-radius:7px;background:#e3efea;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.edBar .sep{width:1px;align-self:stretch;background:var(--line);margin:4px 6px}
+.edBar .iconBtn{border:0;background:none;min-width:34px;height:34px;border-radius:9px;font-size:15px}
+.edBar .hint{margin:0 4px}
+#selBar{display:none;gap:5px}
+#selBar.show{display:flex}
+.titleRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.titleRow label{font-size:14px;color:var(--muted)}
+.titleRow input{flex:0 1 420px;min-width:160px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:#fff}
+#canvasWrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+#canvasWrap .stage{box-shadow:var(--shadow)}
+.edHint{text-align:center;font-size:13px;color:var(--muted);margin:0}
+.linkCard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
+.linkRow{display:flex;align-items:center;gap:8px;background:#f5f3ee;border-radius:12px;padding:4px 4px 4px 12px}
+.linkRow input{border:0;background:transparent;padding:8px 4px;outline:none;min-width:0}
+#linkUrl{flex:1}
+#linkTitle{width:160px;border-left:1px solid var(--line);padding-left:12px}
+.linkActions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.linkActions .tip{margin-left:auto;font-size:12px;color:var(--muted)}
+.pill{border:0;background:#efece4;border-radius:999px;padding:7px 14px;font-weight:600;font-size:14px}
+.pill:hover{background:#e3dfd3}
+.pill.primary{background:var(--accent);color:#fff}
+#edRight{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+#edRight .adds{padding:10px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--line)}
+.dashBtn{border:1.5px dashed #cfc8b8;background:none;border-radius:10px;padding:10px;font-weight:600}
+.dashBtn:hover{border-color:var(--accent);color:var(--accent)}
+#slideList{flex:1;overflow:auto;padding:10px}
+.sItem{display:flex;gap:6px;align-items:flex-start;margin-bottom:10px;cursor:pointer}
+.sItem .n{width:22px;height:22px;flex:none;border-radius:50%;background:#e8e4da;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:3px}
+.sItem.on .n{background:var(--accent);color:#fff}
+.sItem .sw{flex:1;min-width:0}
+.sItem .sbox{border:2px solid transparent;border-radius:9px;position:relative}
+.sItem.on .sbox{border-color:var(--accent)}
+.sItem .sDel{position:absolute;top:3px;right:3px;z-index:4;border:0;background:#fffe;border-radius:6px;width:22px;height:22px;font-size:12px;display:none;padding:0}
+.sItem:hover .sDel{display:block}
+.sItem .lbl{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.pop{position:absolute;z-index:40;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px;width:300px;max-width:calc(100% - 20px)}
+.pop h4{margin:10px 0 6px;font-size:13px;color:var(--muted)}
+.pop h4:first-child{margin-top:0}
+.shapeGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.shapeGrid button{height:54px;border:1px solid var(--line);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center}
+.shapeGrid button i{display:block;width:32px;height:26px;background:var(--accent)}
+#drop{position:fixed;inset:10px;z-index:150;background:rgba(47,111,98,.14);border:4px dashed var(--accent);border-radius:18px;display:none;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:var(--accent);pointer-events:none}
+#drop.show{display:flex}
+.swatches{display:flex;flex-wrap:wrap;gap:6px}
+.swatches button{width:30px;height:30px;border-radius:8px;border:2px solid var(--line)}
+.swatches button.on{border-color:var(--ink)}
+.hint{font-size:13px;color:var(--muted);margin:6px 0}
+.err{color:var(--danger);font-size:13px}
+
+/* slide stage */
+.stage{position:relative;aspect-ratio:16/9;width:100%;border-radius:10px;overflow:hidden;container-type:inline-size;background:#fff}
+.stage .content{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:6cqw 7cqw;gap:2.4cqw}
+.stage h2.st{margin:0;font-size:6.2cqw;line-height:1.1}
+.stage .sb{font-size:3cqw;white-space:pre-wrap}
+.stage .sb ul{margin:0;padding-left:1.2em}
+.stage.layout-title .content{text-align:center;align-items:center}
+.stage.layout-title h2.st{font-size:8cqw}
+.stage iframe,.stage img.full{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+.stage img.full{object-fit:contain}
+.stage .cap{position:absolute;left:0;right:0;bottom:0;padding:1.2cqw 2cqw;font-size:2.4cqw;background:rgba(0,0,0,.55);color:#fff}
+.stage .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1cqw;color:#fff;background:#333;font-size:2.6cqw;text-align:center;padding:4cqw}
+.stage .ph b{font-size:3.6cqw}
+.thumbStage .stage{border-radius:6px}
+.stage video.full{position:absolute;inset:0;width:100%;height:100%;background:#000}
+.stage .sb[contenteditable]{outline:none;min-height:1.4em;cursor:text}
+.stage .sb[contenteditable]:empty::before{content:"Click to type";opacity:.4}
+/* things placed on a slide: text boxes, shapes, sticky notes, pictures */
+.items{position:absolute;inset:0;z-index:3;pointer-events:none}
+.item{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.15;word-break:break-word}
+.item .tx{width:100%;max-height:100%;overflow:hidden;outline:none;white-space:pre-wrap}
+.item.k-text{justify-content:flex-start;text-align:left}
+.item.k-sticky{box-shadow:0 .4cqw 1.2cqw rgba(0,0,0,.2);padding:1.2cqw;align-items:flex-start}
+.item.k-shape{padding:1cqw}
+.item.k-image img{width:100%;height:100%;object-fit:contain;pointer-events:none;display:block}
+.items.edit .item{pointer-events:auto;cursor:move;touch-action:none}
+.items.edit .item.sel{outline:.22cqw solid #2a6db0;outline-offset:.2cqw}
+.items.edit .item .hd{display:none;position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;background:#fff;border:2px solid #2a6db0;border-radius:4px;cursor:nwse-resize}
+.items.edit .item.sel .hd{display:block}
+.items.edit .item.editing{cursor:text}
+.items.edit .item.editing .tx{outline:1px dashed #2a6db0}
+
+/* present: tool dock on the left, slide in the middle, drawing bar + slide controls at the bottom */
+#present{position:fixed;inset:0;background:#101415;z-index:50;display:grid;grid-template-columns:min(340px,80vw) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+#present.noSide,#present.noMenus{grid-template-columns:0 minmax(0,1fr)}
+#present.noSide #pSide,#present.noMenus #pSide,#present.noMenus #pBottom{display:none}
+#pSide{grid-column:1;grid-row:1/3;background:#f3efe6;border-right:1px solid #0003;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.sideHead{display:flex;align-items:center;gap:6px;padding:10px 12px}
+.sideHead b{flex:1;font-size:17px}
+#dock{flex:1;min-height:0;overflow:auto;padding:0 10px 10px;display:flex;flex-direction:column;gap:10px}
+.dockEmpty{color:var(--muted);text-align:center;border:2px dashed var(--line);border-radius:12px;padding:24px 12px;font-size:14px}
+#pSlidesHead{display:flex;align-items:center;gap:6px;padding:8px 12px;border-top:1px solid var(--line)}
+#pSlidesHead small{color:var(--muted)}
+#pThumbs{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 10px 10px;max-height:28vh;overflow:auto}
+#pThumbs.closed{display:none}
+.pThumb{border:3px solid transparent;border-radius:9px;cursor:pointer;position:relative}
+.pThumb.on{border-color:var(--accent)}
+.pThumb .n{position:absolute;left:4px;top:3px;z-index:1;background:#fffd;border-radius:5px;padding:0 5px;font-size:11px;font-weight:700}
+#pMain{grid-column:2;grid-row:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0}
+#pBox{position:relative;width:100%}
+#pBox .stage{border-radius:4px}
+#ink{position:absolute;inset:0;width:100%;height:100%;z-index:5;touch-action:none;cursor:crosshair}
+#ink.off{pointer-events:none}
+#spot{position:absolute;inset:0;z-index:6;pointer-events:none;background:radial-gradient(circle var(--r,170px) at var(--x,50%) var(--y,50%),transparent 97%,rgba(0,0,0,.86) 100%)}
+#pTopRight{position:absolute;top:10px;right:10px;z-index:20;display:flex;gap:6px}
+.darkBtn{background:#1f2629;color:#fff;border:1px solid #fff3;border-radius:999px;padding:6px 14px;font-weight:600}
+.darkBtn:hover{background:#2d373b}
+#sideShow{position:absolute;left:10px;top:10px;z-index:20}
+#menusShow{position:absolute;left:10px;bottom:10px;z-index:20}
+#present:not(.noSide) #sideShow,#present.noMenus #sideShow,#present:not(.noMenus) #menusShow{display:none}
+#pBottom{grid-column:2;grid-row:2;display:flex;align-items:center;gap:10px;padding:8px 12px;flex-wrap:wrap}
+.inkBar{display:flex;gap:2px;background:#fff;border-radius:14px;padding:5px;flex-wrap:wrap}
+.inkBar button{display:flex;flex-direction:column;align-items:center;gap:1px;border:0;background:none;padding:5px 8px;border-radius:10px;font-size:12px;color:#333;min-width:56px}
+.inkBar button .i{font-size:18px;line-height:1.1}
+.inkBar button:hover{background:#f0ede6}
+.inkBar button.on{background:var(--accent);color:#fff}
+.inkColors{display:flex;gap:6px;background:#fff;border-radius:14px;padding:8px 10px}
+.inkColors button{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #0003}
+.inkColors button.on{box-shadow:0 0 0 3px var(--ink)}
+.navBar{margin-left:auto;display:flex;align-items:center;gap:4px;background:#1f2629;border-radius:12px;padding:5px;color:#fff}
+.navBar button{background:#2d373b;border:0;color:#fff;border-radius:8px;padding:8px 12px;font-weight:600}
+.navBar button:hover{background:#3b484d}
+#pNum{padding:0 10px;font-weight:700;font-variant-numeric:tabular-nums}
+#fx{position:fixed;inset:0;z-index:90;pointer-events:none}
+
+/* tool cards: docked in the side panel, or floating anywhere */
+.tool{background:var(--panel);border-radius:var(--radius);border:1px solid var(--line);display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.tool.floating{position:fixed;z-index:70;width:340px;max-width:calc(100vw - 20px);box-shadow:var(--shadow)}
+.tool .th{display:flex;align-items:center;gap:4px;padding:7px 8px 7px 12px;background:var(--accent);color:#fff;border-radius:var(--radius) var(--radius) 0 0;user-select:none;touch-action:none}
+.tool.floating .th{cursor:move}
+.tool.min .th{border-radius:var(--radius)}
+.tool .th b{flex:1;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tool .th button{background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:7px;width:26px;height:26px;font-size:13px;padding:0}
+.tool .th button:hover{background:rgba(255,255,255,.32)}
+.tool .tb{padding:12px;overflow:auto}
+.tool.min .tb{display:none}
+.chip{border:0;background:#efece4;border-radius:999px;padding:5px 10px;font-size:14px;font-weight:600}
+.chip:hover{background:#e3dfd3}
+.dot{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #0003;padding:0}
+.dot.on{box-shadow:0 0 0 3px var(--ink)}
+.dial{width:170px;height:170px;border-radius:50%;margin:2px auto 0;background:#efece4;padding:9px;position:relative}
+.dial .pie{width:100%;height:100%;border-radius:50%}
+.dial i{position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0004}
+.vcard{border-radius:14px;color:#fff;text-align:center;padding:14px;cursor:pointer;user-select:none;transition:background .2s}
+.vcard b{font-size:60px;display:block;line-height:1}
+.vcard span{display:block;font-size:24px;font-weight:800}
+.vcard small{display:block;opacity:.9;font-size:14px}
+.vrow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+.vrow button{border:0;border-radius:10px;padding:8px 0;font-weight:800;color:#fff;font-size:18px}
+.vrow button.on{outline:3px solid var(--ink);outline-offset:1px}
+.tb input.full,.tb textarea.full,.tb select.full{width:100%;padding:7px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.tb textarea.full{min-height:70px;resize:vertical}
+.tb .lab{display:block;font-size:13px;color:var(--muted);margin:8px 0 3px}
+.jar{width:160px;display:block;margin:0 auto}
+.jar circle{transition:opacity .3s}
+.capBox{background:#111;color:#fff;border-radius:12px;padding:12px 14px;height:230px;overflow:auto;font-size:calc(22px * var(--s,1));line-height:1.3;margin-top:8px}
+.capBox .ln{margin:0 0 8px}
+.capBox .tr{color:#ffd76a;display:block}
+.capBox .im{opacity:.55}
+.capBox .ph{opacity:.6;font-size:16px}
+.tgt{border-radius:14px;padding:14px;background:#f3f8f6;border:2px solid var(--accent)}
+.tgt .subj{display:inline-block;background:var(--accent);color:#fff;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:700}
+.tgt .ican{font-size:24px;font-weight:800;margin:8px 0;line-height:1.2}
+.tgt ul{margin:0;padding:0;list-style:none}
+.tgt li{padding:4px 0 4px 26px;position:relative;font-size:17px}
+.tgt li::before{content:"✓";position:absolute;left:4px;color:var(--accent);font-weight:800}
+.bbCard{border-radius:14px;padding:18px 14px;text-align:center;color:#fff;min-height:150px;display:flex;flex-direction:column;justify-content:center;gap:6px}
+.bbCard .em{font-size:44px;line-height:1}
+.bbCard b{font-size:21px}
+.bbCard small{font-size:15px;opacity:.95}
+.big{font-size:64px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;line-height:1.1}
+.row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px;align-items:center}
+.row input[type=number]{width:70px;padding:6px;border:1px solid var(--line);border-radius:8px}
+.meter{height:28px;border-radius:14px;background:#eee;overflow:hidden}
+.meter i{display:block;height:100%;width:0;transition:width .1s,background .3s}
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.teams div{text-align:center;border:1px solid var(--line);border-radius:12px;padding:10px}
+.teams input{width:100%;text-align:center;border:0;font-weight:700;background:transparent}
+.groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px}
+.groups div{border:1px solid var(--line);border-radius:10px;padding:8px}
+.groups b{display:block;color:var(--accent)}
+.vl button{display:block;width:100%;text-align:left;margin:4px 0;padding:10px;border-radius:10px;border:2px solid var(--line);background:#fff}
+.vl button.on{border-color:var(--ink);font-weight:700}
+.dice{font-size:80px;text-align:center;line-height:1}
+.tl{display:flex;flex-direction:column;align-items:center;gap:8px;background:#222;border-radius:20px;padding:12px;width:110px;margin:0 auto}
+.tl button{width:70px;height:70px;border-radius:50%;border:0;opacity:.25}
+.tl button.on{opacity:1;box-shadow:0 0 24px currentColor}
+.checklist label{display:flex;gap:8px;align-items:center;padding:4px 0;font-size:20px}
+.checklist input[type=text]{width:100%;padding:6px;border:1px solid var(--line);border-radius:8px}
+
+dialog{border:0;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;max-width:min(560px,calc(100vw - 32px));width:100%}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+dialog h3{margin-top:0}
+dialog textarea{width:100%;min-height:220px;padding:8px;border:1px solid var(--line);border-radius:8px}
+.dlgBtns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.typeGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.typeGrid button{padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left}
+.typeGrid button b{display:block}
+.typeGrid button small{color:var(--muted)}
+#toast{position:fixed;left:50%;top:16px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.show{opacity:1}
+@media (max-width:900px){
+  #editor,#editor.noLeft{grid-template-columns:1fr;height:auto}
+  #edLeft,#edLeftShow{display:none!important}
+  #edRight{border-left:0;border-top:1px solid var(--line)}
+  #slideList{display:flex;gap:8px;overflow-x:auto}
+  .sItem{min-width:150px}
+  #canvasWrap{min-height:52vw}
+  .linkActions .tip{display:none}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Class<span>board</span></h1>
+  <span id="topActions"></span>
+</header>
+
+<!-- HOME -->
+<main id="home">
+  <div class="toolbar">
+    <button class="btn primary" id="newDeck">+ New slideshow</button>
+    <button class="btn" id="classListBtn">Class list</button>
+    <button class="btn" id="toolsHome">Classroom tools</button>
+    <span style="flex:1"></span>
+    <button class="btn" id="exportBtn">Back up</button>
+    <button class="btn" id="importBtn">Restore</button>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+  </div>
+  <div id="decks" class="grid"></div>
+</main>
+
+<!-- EDITOR -->
+<section id="editor" class="hidden">
+  <aside id="edLeft">
+    <div class="sideHead"><b>My tools</b><button class="btn sm primary" id="edDockAdd">+ Add</button><button class="btn sm" id="edLeftHide" title="Hide the tools panel">«</button></div>
+    <p class="hint">Your live tools, the same ones you use while presenting. Press ⤢ on a tool to float it anywhere.</p>
+    <div id="edDockHost"></div>
+  </aside>
+  <div id="edMain">
+    <div class="edBar">
+      <button class="iconBtn" id="edLeftShow" title="Show the tools panel">»</button>
+      <button class="tbtn" data-add="text" title="Add a text box"><span class="i">T</span>Text</button>
+      <button class="tbtn" id="shapeBtn" title="Add a shape"><span class="i">◆</span>Shape ▾</button>
+      <button class="tbtn" data-add="sticky" title="Add a sticky note"><span class="i">🗒</span>Sticky note</button>
+      <button class="tbtn" id="picBtn" title="Put a picture on this slide"><span class="i">🖼</span>Picture</button>
+      <button class="tbtn" id="edToolsBtn" title="Add a classroom tool to your panel"><span class="i">🧰</span>Tools</button>
+      <span class="sep"></span>
+      <button class="tbtn" id="bgBtn" title="Colors and background picture"><span class="i">🎨</span>Background</button>
+      <span style="flex:1"></span>
+      <button class="iconBtn" id="mDup" title="Duplicate slide">⧉</button>
+      <button class="iconBtn" id="mUp" title="Move slide up">↑</button>
+      <button class="iconBtn" id="mDown" title="Move slide down">↓</button>
+      <button class="iconBtn" id="mDel" title="Delete slide">🗑</button>
+    </div>
+    <div class="edBar" id="selBar"></div>
+    <div class="titleRow">
+      <label for="slideLabel">Slide title</label><input id="slideLabel" placeholder="Add a title, or leave blank">
+      <label for="slideUrl" id="slideUrlL" hidden>Link</label><input id="slideUrl" type="url" hidden placeholder="https://…">
+    </div>
+    <div id="canvasWrap"></div>
+    <p class="edHint" id="edHint"></p>
+    <div class="linkCard">
+      <div class="linkRow"><span aria-hidden="true">🔗</span><input id="linkUrl" placeholder="Paste a link: YouTube, Google Slides, Canva, a Google Doc or any website"><input id="linkTitle" placeholder="Title (optional)"><button class="pill primary" id="linkAdd">Add slide</button></div>
+      <div class="linkActions">
+        <button class="pill" id="upBtn">⬆ Upload photo, video or PDF</button>
+        <button class="pill" id="msgBtn">💬 Message slide</button>
+        <button class="pill" id="newBlank">＋ New slide</button>
+        <span class="tip">Tip: paste a screenshot with Ctrl+V, or drop files anywhere</span>
+      </div>
+      <p class="err" id="linkErr"></p>
+    </div>
+    <input type="file" id="upFile" accept="image/*,video/*,application/pdf,.pdf" multiple hidden>
+    <input type="file" id="picFile" accept="image/*" hidden>
+    <input type="file" id="bgFile" accept="image/*" hidden>
+  </div>
+  <aside id="edRight">
+    <div class="adds"><button class="dashBtn" id="addSlide">＋ Add a slide</button><button class="dashBtn" id="addBlank">＋ Blank slide</button></div>
+    <div id="slideList"></div>
+  </aside>
+</section>
+<div id="drop">Drop to add slides</div>
+
+<!-- PRESENT -->
+<div id="present" class="hidden">
+  <aside id="pSide">
+    <div class="sideHead"><b>My tools</b><button class="btn sm primary" id="dockAdd">+ Add</button><button class="btn sm" id="sideHide" title="Hide the tools panel">«</button></div>
+    <div id="dock"></div>
+    <div id="pSlidesHead"><b>Slides</b><small id="pThumbCount"></small><span style="flex:1"></span><button class="btn sm" id="thumbsToggle" title="Show or hide slides">▾</button></div>
+    <div id="pThumbs"></div>
+  </aside>
+  <div id="pMain">
+    <div id="pBox"><div id="pStage"></div><canvas id="ink" class="off"></canvas><div id="spot" hidden></div></div>
+    <button class="darkBtn" id="sideShow" title="Show the tools panel">» Tools</button>
+    <button class="darkBtn" id="menusShow" title="Show menus (H)">☰ Show menus</button>
+    <div id="pTopRight"><button class="darkBtn" id="pOpen" hidden>Open ↗</button><button class="darkBtn" id="pExitTop">✕ Exit</button></div>
+  </div>
+  <div id="pBottom">
+    <div class="inkBar" id="inkBar">
+      <button data-ink="pointer" title="Pointer: click inside slides and links"><span class="i">➤</span>Pointer</button>
+      <button data-ink="pen" title="Pen"><span class="i">🖊️</span>Pen</button>
+      <button data-ink="pencil" title="Pencil"><span class="i">✏️</span>Pencil</button>
+      <button data-ink="highlight" title="Highlighter"><span class="i">🖍️</span>Highlight</button>
+      <button data-ink="eraser" title="Eraser: wipe over a line to remove it"><span class="i">🧽</span>Eraser</button>
+      <button data-act="undo" title="Undo"><span class="i">↶</span>Undo</button>
+      <button data-act="focus" title="Spotlight: dim everything except around the pointer (scroll to resize)"><span class="i">🔦</span>Focus</button>
+      <button data-act="clear" title="Clear this slide's drawing"><span class="i">🗑️</span>Clear</button>
+      <button data-act="celebrate" title="Celebrate!"><span class="i">🎉</span>Celebrate</button>
+      <button data-act="hide" title="Hide menus (H)"><span class="i">🙈</span>Hide menus</button>
+    </div>
+    <div class="inkColors" id="inkColors"></div>
+    <div class="navBar">
+      <button id="pPrev" title="Previous (←)">‹</button><span id="pNum"></span><button id="pNext" title="Next (→)">›</button>
+      <button id="pFull" title="Full screen (F)">⛶</button><button id="pExit" title="Exit (Esc)">✕ Exit</button>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlg"></dialog>
+<div id="toast"></div>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const newId = () => Math.random().toString(36).slice(2, 10);
+
+// ---------- storage: one IndexedDB record holds everything (photos can be large) ----------
+const DB_NAME = "classboard", STORE = "kv", KEY = "data";
+let db = null;
+function openDB(){
+  return new Promise(res => {
+    try{
+      const r = indexedDB.open(DB_NAME, 2);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        if(!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE);
+        if(!d.objectStoreNames.contains("media")) d.createObjectStore("media");     // uploaded videos (too big to keep with the slides)
+      };
+      r.onsuccess = () => { db = r.result; res(); };
+      r.onerror = () => res();
+    }catch(e){ res(); }
+  });
+}
+function load(){
+  return new Promise(res => {
+    if(!db) return res(null);
+    try{ const q = db.transaction(STORE).objectStore(STORE).get(KEY); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }
+    catch(e){ res(null); }
+  });
+}
+function putMedia(id, blob){
+  return new Promise((res, rej) => {
+    try{ const t = db.transaction("media", "readwrite"); t.objectStore("media").put(blob, id); t.oncomplete = res; t.onerror = t.onabort = () => rej(t.error); }
+    catch(e){ rej(e); }
+  });
+}
+const mediaURLs = {};
+function mediaURL(id){
+  if(mediaURLs[id]) return Promise.resolve(mediaURLs[id]);
+  return new Promise(res => {
+    try{ const q = db.transaction("media").objectStore("media").get(id); q.onsuccess = () => res(q.result ? (mediaURLs[id] = URL.createObjectURL(q.result)) : null); q.onerror = () => res(null); }
+    catch(e){ res(null); }
+  });
+}
+const setSaved = t => { const e = $("saveState"); if(e) e.textContent = t; };
+let saveTimer;
+function save(){
+  clearTimeout(saveTimer); setSaved("Saving…");
+  saveTimer = setTimeout(() => {
+    if(!db){ setSaved("Not saved"); toast("Saving isn't available in this browser window."); return; }
+    try{
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).put(JSON.parse(JSON.stringify(data)), KEY);
+      tx.oncomplete = () => setSaved("✓ Saved");
+      tx.onerror = tx.onabort = () => { setSaved("Not saved"); toast("Couldn't save. Your computer may be out of space."); };
+    }catch(e){ setSaved("Not saved"); toast("Couldn't save: " + e.message); }
+  }, 250);
+}
+
+let data = {decks:[], classList:[]};
+let deck = null, cur = 0;
+
+let toastT;
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2600); }
+
+// ---------- themes ----------
+const THEMES = [
+  {id:"paper", bg:"#fbf8f1", ink:"#1f2a2e", accent:"#2f6f62"},
+  {id:"sky", bg:"#e7f1fb", ink:"#18324a", accent:"#2a6db0"},
+  {id:"mint", bg:"#e6f5ee", ink:"#173b2e", accent:"#1f8a5b"},
+  {id:"peach", bg:"#fdeee4", ink:"#4a2618", accent:"#d0632b"},
+  {id:"lilac", bg:"#f0eafb", ink:"#2e1f4a", accent:"#7550c2"},
+  {id:"sun", bg:"#fff6d6", ink:"#3d3208", accent:"#c99700"},
+  {id:"chalk", bg:"#24352f", ink:"#f2f2ea", accent:"#9fe0c4"},
+  {id:"night", bg:"#161a2b", ink:"#eef0ff", accent:"#ffb547"},
+];
+const theme = id => THEMES.find(t => t.id === id) || THEMES[0];
+
+// ---------- link parsing: YouTube, Google Slides/Docs/Drive, Canva, any https page ----------
+function parseLink(raw){
+  let s = String(raw || "").trim(); if(!s) return null;
+  if(!/^https?:\/\//i.test(s)) s = "https://" + s;
+  let u; try{ u = new URL(s); }catch(e){ return null; }
+  if(u.protocol !== "https:" && u.protocol !== "http:") return null;
+  const h = u.hostname.replace(/^www\./, "");
+  // YouTube
+  let yt = null;
+  if(h === "youtu.be") yt = u.pathname.slice(1).split("/")[0];
+  else if(/(^|\.)youtube\.com$/.test(h)){
+    yt = u.searchParams.get("v") || (u.pathname.match(/^\/(?:shorts|live|embed)\/([^/?]+)/) || [])[1];
+  }
+  if(yt && /^[\w-]{6,}$/.test(yt)){
+    const t = parseInt(u.searchParams.get("t") || u.searchParams.get("start") || "0", 10);
+    return {kind:"youtube", embed:`https://www.youtube-nocookie.com/embed/${yt}?rel=0${t ? "&start=" + t : ""}`, open:s};
+  }
+  // Google Slides (shared or "Publish to web")
+  if(h === "docs.google.com"){
+    let m = u.pathname.match(/^\/presentation\/d\/e\/([\w-]+)/);
+    if(m) return {kind:"gslides", embed:`https://docs.google.com/presentation/d/e/${m[1]}/embed?start=false&loop=false&delayms=60000`, open:s};
+    m = u.pathname.match(/^\/presentation\/d\/([\w-]+)/);
+    if(m) return {kind:"gslides", embed:`https://docs.google.com/presentation/d/${m[1]}/embed?start=false&loop=false&delayms=60000`, open:s};
+    m = u.pathname.match(/^\/(document|spreadsheets|forms)\/d\/(e\/)?([\w-]+)/);
+    if(m) return {kind:"gdoc", embed:`https://docs.google.com/${m[1]}/d/${m[2] || ""}${m[3]}/${m[1] === "forms" ? "viewform?embedded=true" : "preview"}`, open:s};
+  }
+  if(h === "drive.google.com"){
+    const m = u.pathname.match(/^\/file\/d\/([\w-]+)/);
+    if(m) return {kind:"gdrive", embed:`https://drive.google.com/file/d/${m[1]}/preview`, open:s};
+  }
+  if(/(^|\.)canva\.com$/.test(h)){
+    const m = u.pathname.match(/^\/design\/([\w-]+)\/([\w-]+)/);
+    if(m) return {kind:"canva", embed:`https://www.canva.com/design/${m[1]}/${m[2]}/view?embed`, open:s};
+  }
+  if(h === "vimeo.com"){
+    const m = u.pathname.match(/^\/(\d+)/);
+    if(m) return {kind:"vimeo", embed:`https://player.vimeo.com/video/${m[1]}`, open:s};
+  }
+  return {kind:"web", embed:u.href, open:s};
+}
+const LINK_HELP = {
+  gslides:"Google Slides: in Slides choose Share → General access → “Anyone with the link”, or File → Share → Publish to web. Use the arrows inside the slide to move through it.",
+  youtube:"YouTube: any normal video link works.",
+  web:"Some websites don't allow being shown inside another page. If it stays blank, use the Open button while presenting."
+};
+
+// ---------- slides ----------
+const TYPE_NAME = {blank:"Blank", title:"Message", text:"Text & list", image:"Picture", upload:"Video", gslides:"Google Slides", video:"YouTube", link:"Link"};
+function makeSlide(type, extra){
+  const s = {id:newId(), type, items:[]};
+  if(type === "title") Object.assign(s, {title:"Good morning!", body:""});
+  if(type === "text") Object.assign(s, {title:"Today we will…", body:"• \n• \n• "});
+  if(type === "blank") s.title = "";
+  return Object.assign(s, extra || {});
+}
+// A slide = its colors/background + its main content (by type) + things placed on top (items)
+function renderStage(slide, d, opts = {}){
+  const th = theme(slide.theme || d.theme);
+  const el = document.createElement("div");
+  el.className = "stage" + (slide.type === "title" ? " layout-title" : "");
+  const bgCol = slide.bgColor || th.bg;
+  el.style.background = slide.bgImg ? `${bgCol} url("${slide.bgImg}") center / cover no-repeat` : bgCol;
+  el.style.color = th.ink;
+  const cap = slide.title || slide.caption || "";
+  if(slide.type === "title" || slide.type === "text"){
+    el.innerHTML = `<div class="content"><h2 class="st" style="color:${th.accent}">${esc(slide.title)}</h2>${slide.body || opts.edit ? `<div class="sb">${esc(slide.body)}</div>` : ""}</div>`;
+    const sb = el.querySelector(".sb");
+    if(opts.edit && sb){ sb.contentEditable = "true"; sb.addEventListener("input", () => { slide.body = sb.innerText; if(opts.onChange) opts.onChange(); }); }
+  } else if(slide.type === "blank"){
+    if(slide.title) el.innerHTML = `<div class="content" style="justify-content:flex-start"><h2 class="st" style="color:${th.accent}">${esc(slide.title)}</h2></div>`;
+  } else if(slide.type === "image"){
+    el.innerHTML = slide.src ? `<img class="full" alt="" src="${esc(slide.src)}">` : `<div class="ph"><b>Picture</b>No picture yet</div>`;
+  } else if(slide.type === "upload"){
+    if(opts.thumb) el.innerHTML = `<div class="ph" style="background:${th.accent}"><b>▶ Video</b>${esc(slide.fileName || "")}</div>`;
+    else{
+      el.innerHTML = `<video class="full" controls playsinline preload="metadata"></video>`;
+      mediaURL(slide.mediaId).then(u => { if(u) el.querySelector("video").src = u; else el.innerHTML = `<div class="ph"><b>Video missing</b>This video was added on a different computer.</div>`; });
+    }
+  } else {
+    const p = parseLink(slide.url);
+    if(!p) el.innerHTML = `<div class="ph"><b>${TYPE_NAME[slide.type] || "Link"}</b>Paste a link in the Link box above</div>`;
+    else if(opts.thumb) el.innerHTML = `<div class="ph" style="background:${th.accent}"><b>${{gslides:"Google Slides",youtube:"▶ YouTube",gdoc:"Google Doc",gdrive:"Google Drive",canva:"Canva",vimeo:"▶ Vimeo",web:"Web page"}[p.kind]}</b>${esc(new URL(p.embed).hostname)}</div>`;
+    else el.innerHTML = `<iframe src="${esc(p.embed)}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+  }
+  if(cap && !["title","text","blank"].includes(slide.type)) el.insertAdjacentHTML("beforeend", `<div class="cap">${esc(cap)}</div>`);
+  renderItems(el, slide, !!opts.edit);
+  return el;
+}
+const SHAPES = {
+  rect:"", round:"border-radius:2.2cqw", circle:"border-radius:50%",
+  triangle:"clip-path:polygon(50% 0,100% 100%,0 100%)",
+  star:"clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)",
+  arrow:"clip-path:polygon(0 30%,62% 30%,62% 5%,100% 50%,62% 95%,62% 70%,0 70%)",
+  speech:"border-radius:3cqw 3cqw 3cqw 0", diamond:"clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"
+};
+function itemHTML(it){
+  const box = `left:${it.x * 100}%;top:${it.y * 100}%;width:${it.w * 100}%;height:${it.h * 100}%;font-size:${it.fs || 3}cqw;${it.ink ? `color:${it.ink};` : ""}`;
+  if(it.kind === "image") return `<div class="item k-image" data-id="${it.id}" style="${box}"><img alt="" src="${esc(it.src)}"><span class="hd"></span></div>`;
+  const fill = it.kind === "text" ? "" : `background:${it.fill || "#ffe680"};`;
+  const shape = it.kind === "shape" ? SHAPES[it.shape] || "" : "";
+  return `<div class="item k-${it.kind}" data-id="${it.id}" style="${box}${fill}${shape}"><div class="tx">${esc(it.text || "")}</div><span class="hd"></span></div>`;
+}
+function renderItems(stageEl, slide, edit){
+  const items = slide.items || [];
+  if(!items.length && !edit) return;
+  const layer = document.createElement("div"); layer.className = "items" + (edit ? " edit" : "");
+  layer.innerHTML = items.map(itemHTML).join("");
+  stageEl.appendChild(layer);
+  if(edit) wireItems(layer, slide);
+}
+
+// ---------- home ----------
+function showHome(){
+  deck = null;
+  $("home").classList.remove("hidden"); $("editor").classList.add("hidden");
+  $("topActions").innerHTML = "";
+  const g = $("decks"); g.innerHTML = "";
+  if(!data.decks.length){ g.innerHTML = `<div class="empty" style="grid-column:1/-1">No slideshows yet. Choose <b>+ New slideshow</b> to make one.</div>`; return; }
+  [...data.decks].sort((a, b) => b.updated - a.updated).forEach(d => {
+    const c = document.createElement("div"); c.className = "card";
+    const th = theme(d.theme);
+    c.innerHTML = `<div class="thumb" style="background:${th.bg};color:${th.accent}">${esc(d.name)}</div>
+      <div class="meta"><b>${esc(d.name)}</b><small>${d.slides.length} slide${d.slides.length === 1 ? "" : "s"}</small>
+      <button class="btn sm primary" data-a="present">Present</button><button class="btn sm" data-a="edit">Edit</button>
+      <button class="btn sm" data-a="copy" title="Duplicate">⧉</button><button class="btn sm danger" data-a="del" title="Delete">🗑</button></div>`;
+    c.querySelector(".thumb").onclick = () => openEditor(d);
+    c.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => {
+      const a = b.dataset.a;
+      if(a === "edit") openEditor(d);
+      if(a === "present"){ deck = d; startPresent(0); }
+      if(a === "copy"){ const n = JSON.parse(JSON.stringify(d)); n.id = newId(); n.name += " (copy)"; n.updated = Date.now(); n.slides.forEach(s => s.id = newId()); data.decks.push(n); save(); showHome(); }
+      if(a === "del" && await confirmBox(`Delete “${d.name}”? This can't be undone.`, "Delete")){ data.decks = data.decks.filter(x => x !== d); save(); showHome(); }
+    });
+    g.appendChild(c);
+  });
+}
+$("newDeck").onclick = async () => {
+  const name = await promptBox("Name your slideshow", "Monday morning");
+  if(name === null) return;
+  const d = {id:newId(), name:name.trim() || "Untitled slideshow", theme:"paper", created:Date.now(), updated:Date.now(), slides:[makeSlide("title")]};
+  data.decks.push(d); save(); openEditor(d);
+};
+
+// ---------- editor ----------
+const editorOpen = () => !$("editor").classList.contains("hidden");
+let selId = null;
+function openEditor(d){
+  deck = d; cur = Math.max(0, Math.min(cur, d.slides.length - 1)); selId = null;
+  d.slides.forEach(s => s.items = s.items || []);
+  $("home").classList.add("hidden"); $("editor").classList.remove("hidden");
+  $("editor").classList.toggle("noLeft", !!data.edLeftHidden);
+  $("topActions").innerHTML = `<button class="btn" id="backHome" title="All slideshows">☰ Slideshows</button><input id="deckName" class="deckName" aria-label="Slideshow name"><span id="saveState" class="saveState">✓ Saved</span><button class="btn primary" id="presentBtn">▶ Present</button>`;
+  $("deckName").value = d.name;
+  $("deckName").oninput = e => { deck.name = e.target.value; touch(); };
+  $("backHome").onclick = showHome;
+  $("presentBtn").onclick = () => startPresent(cur);
+  $("edDockHost").appendChild($("dock")); buildDock();
+  renderEditor();
+}
+function touch(){ deck.updated = Date.now(); save(); }
+const curSlide = () => deck && deck.slides[cur];
+function renderEditor(){ renderSlideList(); renderCanvas(); }
+function renderSlideList(){
+  const list = $("slideList"); list.innerHTML = "";
+  deck.slides.forEach((s, i) => {
+    const it = document.createElement("div"); it.className = "sItem" + (i === cur ? " on" : "");
+    it.innerHTML = `<span class="n">${i + 1}</span><div class="sw"><div class="sbox thumbStage"><button class="sDel" title="Delete slide">🗑</button></div><div class="lbl">${esc(s.title || TYPE_NAME[s.type] || "")}</div></div>`;
+    it.querySelector(".sbox").appendChild(renderStage(s, deck, {thumb:true}));
+    it.onclick = e => { if(e.target.closest(".sDel")) return; cur = i; selId = null; renderEditor(); };
+    it.querySelector(".sDel").onclick = () => deleteSlide(i);
+    list.appendChild(it);
+  });
+  const on = list.children[cur]; if(on) on.scrollIntoView({block:"nearest"});
+}
+function refreshThumb(){
+  const it = $("slideList").children[cur], s = curSlide(); if(!it || !s) return;
+  it.querySelector(".sbox .stage").replaceWith(renderStage(s, deck, {thumb:true}));
+  it.querySelector(".lbl").textContent = s.title || TYPE_NAME[s.type] || "";
+}
+let thumbT; const thumbSoon = () => { clearTimeout(thumbT); thumbT = setTimeout(refreshThumb, 300); };
+function renderCanvas(){
+  const wrap = $("canvasWrap"), s = curSlide(); wrap.innerHTML = "";
+  if(!s){ wrap.innerHTML = `<div class="empty">No slides. Choose <b>＋ Add a slide</b>.</div>`; $("selBar").classList.remove("show"); return; }
+  wrap.appendChild(renderStage(s, deck, {edit:true, onChange:() => { touch(); thumbSoon(); }}));
+  fitCanvas();
+  $("slideLabel").value = s.title || "";
+  $("slideLabel").placeholder = s.type === "title" || s.type === "text" ? "Heading" : "Add a title, or leave blank";
+  const isLink = ["gslides","video","link"].includes(s.type);
+  $("slideUrl").hidden = $("slideUrlL").hidden = !isLink; if(isLink) $("slideUrl").value = s.url || "";
+  $("edHint").textContent = s.type === "gslides" ? LINK_HELP.gslides
+    : s.type === "link" ? LINK_HELP.web
+    : s.type === "text" || s.type === "title" ? "Click the text on the slide to change it. Add text boxes, shapes and sticky notes from the bar above."
+    : "Double-click a text box, shape or sticky note to type in it. Drag to move it, and pull its corner to resize it.";
+  markSel(); renderSelBar();
+}
+function fitCanvas(){
+  const wrap = $("canvasWrap"), st = wrap.querySelector(".stage"); if(!st) return;
+  st.style.width = Math.max(200, Math.min(wrap.clientWidth, wrap.clientHeight * 16 / 9)) + "px";
+}
+new ResizeObserver(fitCanvas).observe($("canvasWrap"));
+$("slideLabel").oninput = e => {
+  const s = curSlide(); if(!s) return; s.title = e.target.value; touch();
+  const h = $("canvasWrap").querySelector("h2.st, .cap");
+  if(h) h.textContent = s.title; else renderCanvas();
+  if(!s.title && h && h.matches(".cap")) renderCanvas();
+  thumbSoon();
+};
+$("slideUrl").onchange = e => {
+  const s = curSlide(), v = e.target.value.trim();
+  if(v && !parseLink(v)){ toast("That doesn't look like a web link."); return; }
+  s.url = v; touch(); renderCanvas(); refreshThumb();
+};
+function deleteSlide(i){
+  const s = deck.slides[i];
+  confirmBox(`Delete slide ${i + 1}${s.title ? ` (“${s.title}”)` : ""}?`, "Delete").then(ok => {
+    if(!ok) return;
+    deck.slides.splice(i, 1); if(cur >= deck.slides.length) cur = deck.slides.length - 1; if(cur < 0) cur = 0;
+    selId = null; touch(); renderEditor();
+  });
+}
+function insertSlide(s){ deck.slides.splice(cur + 1, 0, s); cur = deck.slides.indexOf(s); selId = null; touch(); renderEditor(); return s; }
+$("mDup").onclick = () => { const s = curSlide(); if(!s) return; const c = JSON.parse(JSON.stringify(s)); c.id = newId(); (c.items || []).forEach(x => x.id = newId()); insertSlide(c); };
+$("mUp").onclick = () => { if(cur > 0){ [deck.slides[cur - 1], deck.slides[cur]] = [deck.slides[cur], deck.slides[cur - 1]]; cur--; touch(); renderEditor(); } };
+$("mDown").onclick = () => { if(cur < deck.slides.length - 1){ [deck.slides[cur + 1], deck.slides[cur]] = [deck.slides[cur], deck.slides[cur + 1]]; cur++; touch(); renderEditor(); } };
+$("mDel").onclick = () => { if(curSlide()) deleteSlide(cur); };
+$("addBlank").onclick = $("newBlank").onclick = () => insertSlide(makeSlide("blank"));
+$("msgBtn").onclick = () => { insertSlide(makeSlide("title")); $("slideLabel").focus(); $("slideLabel").select(); };
+$("edLeftHide").onclick = () => { data.edLeftHidden = true; save(); $("editor").classList.add("noLeft"); };
+$("edLeftShow").onclick = () => { data.edLeftHidden = false; save(); $("editor").classList.remove("noLeft"); };
+$("edDockAdd").onclick = $("edToolsBtn").onclick = () => toolPicker_("Add a tool to your panel", id => { if(data.edLeftHidden) $("edLeftShow").click(); dockTool(id); });
+$("addSlide").onclick = () => {
+  const opts = [
+    ["blank","Blank slide","Add text, shapes, stickies and pictures"],["title","Message slide","A big centered message"],["text","Text & list","A heading with notes or a list"],
+    ["file","Photo, video or PDF","From this computer. Each PDF page becomes a slide"],["gslides","Google Slides","Paste a Google Slides link"],["video","YouTube video","Paste a YouTube link"],["link","Website or document","Google Docs, Drive, Canva, Vimeo, websites"]];
+  const d = $("dlg");
+  d.innerHTML = `<h3>Add a slide</h3><div class="typeGrid">${opts.map(([t, n, x]) => `<button data-type="${t}"><b>${n}</b><small>${x}</small></button>`).join("")}</div><div class="dlgBtns"><button class="btn" id="dX">Cancel</button></div>`;
+  d.querySelectorAll("[data-type]").forEach(b => b.onclick = () => {
+    d.close(); const t = b.dataset.type;
+    if(t === "file") $("upFile").click();
+    else if(["gslides","video","link"].includes(t)){ $("linkUrl").focus(); $("linkUrl").placeholder = t === "gslides" ? "Paste your Google Slides link here, then press Add slide" : t === "video" ? "Paste a YouTube link here, then press Add slide" : "Paste the link here, then press Add slide"; }
+    else insertSlide(makeSlide(t));
+  });
+  $("dX").onclick = () => d.close();
+  d.showModal();
+};
+
+// ---------- link bar: paste a link, get a slide ----------
+function addLinkSlide(raw, title){
+  const p = parseLink(raw);
+  if(!p){ $("linkErr").textContent = "That doesn't look like a web link. Try copying it again from the address bar."; return false; }
+  $("linkErr").textContent = "";
+  insertSlide(makeSlide(p.kind === "gslides" ? "gslides" : p.kind === "youtube" ? "video" : "link", {url:raw.trim(), title:(title || "").trim()}));
+  if(p.kind === "gslides") toast("Google Slides added. Make sure it's shared with “Anyone with the link”.");
+  return true;
+}
+$("linkAdd").onclick = () => { if(addLinkSlide($("linkUrl").value, $("linkTitle").value)){ $("linkUrl").value = $("linkTitle").value = ""; $("linkUrl").placeholder = "Paste a link: YouTube, Google Slides, Canva, a Google Doc or any website"; } };
+$("linkUrl").onkeydown = $("linkTitle").onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); $("linkAdd").click(); } };
+
+// ---------- things on a slide: text boxes, shapes, sticky notes, pictures ----------
+const curItem = () => { const s = curSlide(); return s && (s.items || []).find(x => x.id === selId); };
+function markSel(){ $("canvasWrap").querySelectorAll(".item").forEach(e => e.classList.toggle("sel", e.dataset.id === selId)); }
+function selectItem(id){ if(selId === id) return; selId = id; markSel(); renderSelBar(); }
+function itemsChanged(){ touch(); renderCanvas(); refreshThumb(); }
+function addItem(kind, extra){
+  const s = curSlide(); if(!s){ toast("Add a slide first."); return; }
+  const th = theme(s.theme || deck.theme);
+  const base = {
+    text:{x:.3, y:.42, w:.4, h:.16, fs:4, text:"Double-click to type", ink:th.ink},
+    sticky:{x:.39, y:.3, w:.22, h:.36, fs:2.6, fill:"#ffe680", ink:"#3a3000", text:"Note"},
+    shape:{x:.41, y:.34, w:.18, h:.32, fs:3, fill:th.accent, ink:"#ffffff", text:"", shape:"round"},
+    image:{x:.3, y:.2, w:.4, h:.6}
+  }[kind];
+  const n = (s.items = s.items || []).length % 6 * .02;
+  const it = Object.assign({id:newId(), kind}, base, {x:base.x + n, y:base.y + n}, extra || {});
+  s.items.push(it); selId = it.id; itemsChanged();
+  return it;
+}
+document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => addItem(b.dataset.add));
+function wireItems(layer, slide){
+  layer.querySelectorAll(".item").forEach(el => {
+    const it = slide.items.find(x => x.id === el.dataset.id); if(!it) return;
+    el.addEventListener("pointerdown", e => {
+      if(el.classList.contains("editing")) return;
+      e.preventDefault(); selectItem(it.id);
+      const r = layer.getBoundingClientRect(), sx = e.clientX, sy = e.clientY, o = {x:it.x, y:it.y, w:it.w, h:it.h};
+      const resize = e.target.classList.contains("hd"); let moved = false;
+      el.setPointerCapture(e.pointerId);
+      const mv = ev => {
+        const dx = (ev.clientX - sx) / r.width, dy = (ev.clientY - sy) / r.height;
+        if(Math.abs(dx) + Math.abs(dy) > .002) moved = true;
+        if(resize){
+          it.w = Math.max(.03, o.w + dx); it.h = Math.max(.04, o.h + dy);
+          if(it.kind === "image" && it.ratio) it.h = it.w * it.ratio * 16 / 9;       // pictures keep their shape
+        } else { it.x = Math.min(.97, Math.max(-it.w + .03, o.x + dx)); it.y = Math.min(.95, Math.max(-it.h + .05, o.y + dy)); }
+        el.style.left = it.x * 100 + "%"; el.style.top = it.y * 100 + "%"; el.style.width = it.w * 100 + "%"; el.style.height = it.h * 100 + "%";
+      };
+      const up = () => { el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", up); if(moved){ touch(); refreshThumb(); } };
+      el.addEventListener("pointermove", mv); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+    });
+    if(it.kind !== "image") el.addEventListener("dblclick", () => editItemText(el, it));
+  });
+}
+function editItemText(el, it){
+  const tx = el.querySelector(".tx"); if(!tx) return;
+  el.classList.add("editing"); tx.contentEditable = "true"; tx.focus();
+  const rg = document.createRange(); rg.selectNodeContents(tx); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg);
+  tx.onkeydown = e => { e.stopPropagation(); if(e.key === "Escape") tx.blur(); };
+  tx.onblur = () => { it.text = tx.innerText.replace(/\n$/, ""); tx.contentEditable = "false"; el.classList.remove("editing"); touch(); refreshThumb(); };
+}
+$("canvasWrap").addEventListener("pointerdown", e => { if(!e.target.closest(".item")) selectItem(null); });
+const FILLS = ["#ffe680","#ffc4d6","#c8f0d2","#cfe3ff","#e4d4ff","#ffd6b0","#2f6f62","#e0412f","#2a6db0","#f2b300","#7550c2","#1d1d1d","#ffffff"];
+const INKS = ["#1d1d1d","#ffffff","#2f6f62","#e0412f","#2a6db0","#7550c2","#d0632b"];
+function renderSelBar(){
+  const bar = $("selBar"), it = curItem();
+  if(!it){ bar.classList.remove("show"); bar.innerHTML = ""; return; }
+  let h = `<b style="margin:0 6px">${{text:"Text box", sticky:"Sticky note", shape:"Shape", image:"Picture"}[it.kind]}</b>`;
+  if(it.kind === "shape" || it.kind === "sticky") h += `<span class="sep"></span><span class="hint">Fill</span>` + FILLS.map(c => `<button class="dot${it.fill === c ? " on" : ""}" data-fill="${c}" style="background:${c}" title="${c}"></button>`).join("");
+  if(it.kind !== "image") h += `<span class="sep"></span><span class="hint">Text</span>` + INKS.map(c => `<button class="dot${it.ink === c ? " on" : ""}" data-ink="${c}" style="background:${c}" title="${c}"></button>`).join("")
+    + `<button class="iconBtn" data-fs="-1" title="Smaller text">A−</button><button class="iconBtn" data-fs="1" title="Bigger text">A+</button><button class="iconBtn" data-edit title="Type in it">✎</button>`;
+  h += `<span style="flex:1"></span><button class="iconBtn" data-z="1" title="Bring to front">⤒</button><button class="iconBtn" data-z="-1" title="Send to back">⤓</button><button class="iconBtn" data-dupi title="Duplicate">⧉</button><button class="iconBtn" data-deli title="Delete (Delete key)">🗑</button>`;
+  bar.innerHTML = h; bar.classList.add("show");
+  const s = curSlide();
+  bar.querySelectorAll("[data-fill]").forEach(b => b.onclick = () => { it.fill = b.dataset.fill; itemsChanged(); });
+  bar.querySelectorAll("[data-ink]").forEach(b => b.onclick = () => { it.ink = b.dataset.ink; itemsChanged(); });
+  bar.querySelectorAll("[data-fs]").forEach(b => b.onclick = () => { it.fs = Math.max(1, Math.min(14, (it.fs || 3) * (b.dataset.fs > 0 ? 1.15 : 1 / 1.15))); itemsChanged(); });
+  const ed = bar.querySelector("[data-edit]"); if(ed) ed.onclick = () => { const el = $("canvasWrap").querySelector(`.item[data-id="${it.id}"]`); if(el) editItemText(el, it); };
+  bar.querySelectorAll("[data-z]").forEach(b => b.onclick = () => { s.items = s.items.filter(x => x !== it); if(b.dataset.z > 0) s.items.push(it); else s.items.unshift(it); itemsChanged(); });
+  bar.querySelector("[data-dupi]").onclick = () => { const c = Object.assign({}, it, {id:newId(), x:it.x + .03, y:it.y + .03}); s.items.push(c); selId = c.id; itemsChanged(); };
+  bar.querySelector("[data-deli]").onclick = deleteSelItem;
+}
+function deleteSelItem(){ const s = curSlide(), it = curItem(); if(!it) return; s.items = s.items.filter(x => x !== it); selId = null; itemsChanged(); }
+document.addEventListener("keydown", e => {
+  if(!editorOpen() || isPresenting() || e.target.closest("input,textarea,select,dialog,[contenteditable=true]")) return;
+  if((e.key === "Delete" || e.key === "Backspace") && curItem()){ e.preventDefault(); deleteSelItem(); }
+  else if(e.key === "Escape") selectItem(null);
+  else if(e.key.startsWith("Arrow") && curItem()){
+    e.preventDefault(); const it = curItem(), st = e.shiftKey ? .05 : .01;
+    if(e.key === "ArrowLeft") it.x -= st; if(e.key === "ArrowRight") it.x += st; if(e.key === "ArrowUp") it.y -= st; if(e.key === "ArrowDown") it.y += st;
+    itemsChanged();
+  }
+});
+
+// ---------- pop-up menus under toolbar buttons ----------
+let popEl = null;
+function closePop(){ if(popEl){ popEl.remove(); popEl = null; } }
+function openPop(btn, html){
+  closePop();
+  const m = $("edMain"), r = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
+  popEl = document.createElement("div"); popEl.className = "pop"; popEl.innerHTML = html;
+  m.appendChild(popEl);
+  popEl.style.left = Math.max(8, Math.min(r.left - mr.left, mr.width - popEl.offsetWidth - 8)) + "px";
+  popEl.style.top = (r.bottom - mr.top + 6) + "px";
+  return popEl;
+}
+document.addEventListener("pointerdown", e => { if(popEl && !popEl.contains(e.target) && !e.target.closest("#shapeBtn,#bgBtn")) closePop(); });
+$("shapeBtn").onclick = () => {
+  if(popEl){ closePop(); return; }
+  const names = {rect:"Square", round:"Rounded", circle:"Circle", triangle:"Triangle", star:"Star", arrow:"Arrow", speech:"Speech bubble", diamond:"Diamond"};
+  const p = openPop($("shapeBtn"), `<h4>Add a shape</h4><div class="shapeGrid">${Object.keys(SHAPES).map(k => `<button data-shape="${k}" title="${names[k]}"><i style="${SHAPES[k].replace(/cqw/g, "px")}${k === "circle" ? ";width:28px;height:28px" : ""}"></i></button>`).join("")}</div>`);
+  p.querySelectorAll("[data-shape]").forEach(b => b.onclick = () => { closePop(); addItem("shape", {shape:b.dataset.shape}); });
+};
+$("picBtn").onclick = () => { if(!curSlide()){ toast("Add a slide first."); return; } $("picFile").click(); };
+$("picFile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if(!f) return;
+  try{
+    const {src, w, h} = await shrinkImage(f, 1600), ratio = h / w;
+    let iw = .4, ih = iw * ratio * 16 / 9; if(ih > .8){ ih = .8; iw = ih / ratio * 9 / 16; }
+    addItem("image", {src, ratio, w:iw, h:ih, x:(1 - iw) / 2, y:(1 - ih) / 2});
+  }catch(err){ toast("Couldn't read that picture."); }
+};
+$("bgBtn").onclick = () => {
+  if(popEl){ closePop(); return; }
+  const s = curSlide(); if(!s) return;
+  const sw = (attr, sel) => THEMES.map(t => `<button data-${attr}="${t.id}" class="${sel === t.id ? "on" : ""}" title="${t.id}" style="background:linear-gradient(135deg,${t.bg} 55%,${t.accent} 55%)"></button>`).join("");
+  const p = openPop($("bgBtn"), `<h4>Colors for the whole slideshow</h4><div class="swatches">${sw("dt", deck.theme)}</div>
+    <h4>This slide only</h4><div class="swatches"><button data-st="" class="${!s.theme ? "on" : ""}" title="Same as the slideshow">↺</button>${sw("st", s.theme)}</div>
+    <h4>Background color</h4><div class="row" style="justify-content:flex-start;margin:0"><input type="color" id="bgCol" value="${s.bgColor || theme(s.theme || deck.theme).bg}"><button class="pill" id="bgColClear">Use the theme color</button></div>
+    <h4>Background picture</h4><div class="row" style="justify-content:flex-start;margin:0"><button class="pill" id="bgImgBtn">Upload picture</button>${s.bgImg ? `<button class="pill" id="bgImgDel">Remove</button>` : ""}</div>
+    <div class="row" style="justify-content:flex-start"><button class="pill primary" id="bgAll">Use this background on every slide</button></div>`);
+  const redo = () => { touch(); renderEditor(); closePop(); $("bgBtn").click(); };
+  p.querySelectorAll("[data-dt]").forEach(b => b.onclick = () => { deck.theme = b.dataset.dt; redo(); });
+  p.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { s.theme = b.dataset.st || undefined; redo(); });
+  $("bgCol").oninput = e => { s.bgColor = e.target.value; touch(); renderCanvas(); thumbSoon(); };
+  $("bgColClear").onclick = () => { delete s.bgColor; redo(); };
+  $("bgImgBtn").onclick = () => $("bgFile").click();
+  if($("bgImgDel")) $("bgImgDel").onclick = () => { delete s.bgImg; redo(); };
+  $("bgAll").onclick = () => { deck.slides.forEach(x => { x.theme = s.theme; if(s.bgColor) x.bgColor = s.bgColor; else delete x.bgColor; if(s.bgImg) x.bgImg = s.bgImg; else delete x.bgImg; }); touch(); renderEditor(); closePop(); toast("Background used on every slide."); };
+};
+$("bgFile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if(!f) return;
+  try{ curSlide().bgImg = (await shrinkImage(f, 1920)).src; touch(); renderEditor(); closePop(); }catch(err){ toast("Couldn't read that picture."); }
+};
+function shrinkImage(file, max){
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      res({src:c.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", .85), w:c.width, h:c.height});
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(); };
+    img.src = url;
+  });
+}
+
+// ---------- uploads: photos, videos and PDFs (button, paste, or drop anywhere) ----------
+$("upBtn").onclick = () => $("upFile").click();
+$("upFile").onchange = e => { const f = [...e.target.files]; e.target.value = ""; handleFiles(f); };
+async function handleFiles(files){
+  files = files.filter(f => /^(image|video)\//.test(f.type) || /\.pdf$/i.test(f.name) || f.type === "application/pdf");
+  if(!files.length){ toast("Choose a photo, a video or a PDF."); return; }
+  if(!deck || !editorOpen()){
+    const d = {id:newId(), name:files[0].name.replace(/\.[^.]+$/, "").slice(0, 60) || "New slideshow", theme:"paper", created:Date.now(), updated:Date.now(), slides:[]};
+    data.decks.push(d); cur = 0; openEditor(d); cur = -1;
+  }
+  for(const f of files){
+    try{
+      if(/\.pdf$/i.test(f.name) || f.type === "application/pdf") await importPdf(f);
+      else if(f.type.startsWith("image/")) insertSlide(makeSlide("image", {src:(await shrinkImage(f, 1920)).src}));
+      else{
+        if(f.size > 500 * 1048576){ toast(`${f.name} is too big (over 500 MB).`); continue; }
+        const mediaId = newId(); await putMedia(mediaId, f);
+        insertSlide(makeSlide("upload", {mediaId, fileName:f.name}));
+      }
+    }catch(err){ console.warn(err); toast(`Couldn't add ${f.name}.`); }
+  }
+  if(cur < 0) cur = 0;
+  renderEditor();
+}
+// PDF pages become picture slides. pdf.js 4.x, with font code evaluation turned off.
+const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/";
+let pdfjsP = null;
+function loadPdfjs(){
+  if(!pdfjsP) pdfjsP = import(PDFJS + "pdf.min.mjs").then(m => { m.GlobalWorkerOptions.workerSrc = PDFJS + "pdf.worker.min.mjs"; return m; }).catch(e => { pdfjsP = null; throw e; });
+  return pdfjsP;
+}
+async function importPdf(file){
+  const d = $("dlg");
+  d.innerHTML = `<h3>Bringing in ${esc(file.name)}</h3><p id="pdfMsg">Opening the PDF…</p><div class="meter"><i id="pdfBar" style="background:var(--accent)"></i></div>`;
+  d.oncancel = e => e.preventDefault(); d.showModal();
+  try{
+    let pdfjs;
+    try{ pdfjs = await loadPdfjs(); }catch(e){ throw new Error("The PDF reader needs the internet the first time. Check the connection and try again."); }
+    const pdf = await pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()), isEvalSupported:false}).promise;
+    const n = Math.min(pdf.numPages, 100);
+    for(let p = 1; p <= n; p++){
+      $("pdfMsg").textContent = `Page ${p} of ${n}…`; $("pdfBar").style.width = (p - 1) / n * 100 + "%";
+      const page = await pdf.getPage(p), v1 = page.getViewport({scale:1});
+      const vp = page.getViewport({scale:Math.min(1920 / v1.width, 1080 / v1.height)});
+      const c = document.createElement("canvas"); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+      const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+      // "print" rendering doesn't wait for screen repaints, so a big PDF keeps going even if the tab is in the background
+      await page.render({canvasContext:ctx, viewport:vp, intent:"print"}).promise;
+      const s = makeSlide("image", {src:c.toDataURL("image/jpeg", .85), bgColor:"#ffffff"});
+      deck.slides.splice(cur + 1, 0, s); cur = deck.slides.indexOf(s);
+      page.cleanup();
+    }
+    touch(); d.close();
+    toast(pdf.numPages > n ? `Added the first ${n} of ${pdf.numPages} pages.` : `Added ${n} page${n === 1 ? "" : "s"} from the PDF.`);
+    pdf.destroy();
+  }catch(e){
+    d.close(); console.warn(e);
+    toast(/password/i.test(e.name + e.message) ? "That PDF has a password. Save a copy without one and try again." : e.message || "Couldn't read that PDF.");
+  }
+}
+document.addEventListener("paste", e => {
+  if(!editorOpen() || isPresenting() || e.target.closest("input,textarea,[contenteditable=true]")) return;
+  const files = [...(e.clipboardData && e.clipboardData.files || [])];
+  if(files.length){ e.preventDefault(); handleFiles(files); return; }
+  const t = (e.clipboardData && e.clipboardData.getData("text") || "").trim();
+  if(/^https?:\/\/\S+$/i.test(t)){ e.preventDefault(); addLinkSlide(t, ""); }
+});
+let dragN = 0;
+const hasFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+addEventListener("dragenter", e => { if(!hasFiles(e) || isPresenting()) return; dragN++; $("drop").classList.add("show"); });
+addEventListener("dragleave", () => { if(--dragN <= 0){ dragN = 0; $("drop").classList.remove("show"); } });
+addEventListener("dragover", e => { if(hasFiles(e)) e.preventDefault(); });
+addEventListener("drop", e => {
+  if(!hasFiles(e)) return; e.preventDefault(); dragN = 0; $("drop").classList.remove("show");
+  if(!isPresenting()) handleFiles([...e.dataTransfer.files]);
+});
+
+// ---------- dialogs ----------
+function confirmBox(msg, ok = "OK"){
+  return new Promise(res => {
+    const d = $("dlg");
+    d.innerHTML = `<p>${esc(msg)}</p><div class="dlgBtns"><button class="btn" id="dNo">Cancel</button><button class="btn primary" id="dYes">${esc(ok)}</button></div>`;
+    const done = v => { d.close(); res(v); };
+    $("dYes").onclick = () => done(true); $("dNo").onclick = () => done(false);
+    d.oncancel = e => { e.preventDefault(); done(false); };
+    d.showModal();
+  });
+}
+function promptBox(msg, value = ""){
+  return new Promise(res => {
+    const d = $("dlg");
+    d.innerHTML = `<h3>${esc(msg)}</h3><input type="text" id="dIn" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px" value="${esc(value)}"><div class="dlgBtns"><button class="btn" id="dNo">Cancel</button><button class="btn primary" id="dYes">OK</button></div>`;
+    const done = v => { d.close(); res(v); };
+    $("dYes").onclick = () => done($("dIn").value); $("dNo").onclick = () => done(null);
+    $("dIn").onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); done($("dIn").value); } };
+    d.oncancel = e => { e.preventDefault(); done(null); };
+    d.showModal(); $("dIn").select();
+  });
+}
+function classListDialog(){
+  const d = $("dlg");
+  d.innerHTML = `<h3>Class list</h3><p class="hint">One student per line. Used by the name picker, group maker and checklists. It stays on this computer.</p><textarea id="clText">${esc(data.classList.join("\n"))}</textarea><div class="dlgBtns"><button class="btn" id="dNo">Cancel</button><button class="btn primary" id="dYes">Save</button></div>`;
+  $("dYes").onclick = () => { data.classList = $("clText").value.split("\n").map(s => s.trim()).filter(Boolean); save(); d.close(); toast(`Saved ${data.classList.length} names.`); };
+  $("dNo").onclick = () => d.close();
+  d.showModal();
+}
+$("classListBtn").onclick = classListDialog;
+
+// ---------- backup / restore ----------
+$("exportBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify(data)], {type:"application/json"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `classboard-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$("importBtn").onclick = () => $("importFile").click();
+$("importFile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if(!f) return;
+  try{
+    const inc = JSON.parse(await f.text());
+    if(!inc || !Array.isArray(inc.decks)) throw new Error("not a backup");
+    const have = new Set(data.decks.map(d => d.id));
+    let added = 0;
+    inc.decks.forEach(d => { if(d && Array.isArray(d.slides)){ if(have.has(d.id)) d.id = newId(); data.decks.push(d); added++; } });
+    if(Array.isArray(inc.classList) && !data.classList.length) data.classList = inc.classList.map(String);
+    save(); showHome(); toast(`Restored ${added} slideshow${added === 1 ? "" : "s"}.`);
+  }catch(err){ toast("That file isn't a Classboard backup."); }
+};
+
+// ---------- present mode: tool dock (left), slide (middle), drawing bar + slide controls (bottom) ----------
+const pres = $("present");
+const isPresenting = () => !pres.classList.contains("hidden");
+function startPresent(i){
+  if(!deck || !deck.slides.length){ toast("Add a slide first."); return; }
+  cur = i; pres.classList.remove("hidden"); document.body.style.overflow = "hidden";
+  pres.classList.toggle("noSide", !!data.sideHidden);
+  closePop(); selId = null;
+  $("pSide").insertBefore($("dock"), $("pSlidesHead"));       // the same live tools follow you into Present
+  buildDock(); renderThumbs(); setInk("pointer"); showPresentSlide();
+}
+function showPresentSlide(){
+  const s = deck.slides[cur], host = $("pStage"); host.innerHTML = "";
+  host.appendChild(renderStage(s, deck));
+  $("pNum").textContent = `Slide ${cur + 1}`;
+  $("pThumbCount").textContent = `${cur + 1} of ${deck.slides.length}`;
+  $("pThumbs").querySelectorAll(".pThumb").forEach((t, k) => t.classList.toggle("on", k === cur));
+  const on = $("pThumbs").children[cur]; if(on) on.scrollIntoView({block:"nearest"});
+  const p = s.url && parseLink(s.url);
+  $("pOpen").hidden = !p; $("pOpen").onclick = () => p && window.open(p.open, "_blank", "noopener");
+  fitStage();
+}
+function renderThumbs(){
+  const t = $("pThumbs"); t.innerHTML = "";
+  t.classList.toggle("closed", !!data.thumbsHidden);
+  deck.slides.forEach((s, k) => {
+    const d = document.createElement("div"); d.className = "pThumb thumbStage";
+    d.innerHTML = `<span class="n">${k + 1}</span>`; d.appendChild(renderStage(s, deck, {thumb:true}));
+    d.onclick = () => { cur = k; showPresentSlide(); };
+    t.appendChild(d);
+  });
+}
+// keep the slide as big as the free space allows, at 16:9
+function fitStage(){
+  if(!isPresenting()) return;
+  const m = $("pMain"), pad = 16;
+  const w = Math.max(100, Math.min(m.clientWidth - pad * 2, (m.clientHeight - pad * 2) * 16 / 9));
+  $("pBox").style.width = w + "px";
+  sizeInk();
+}
+new ResizeObserver(fitStage).observe($("pMain"));
+function go(n){ if(!deck) return; const nx = Math.max(0, Math.min(deck.slides.length - 1, cur + n)); if(nx !== cur){ cur = nx; showPresentSlide(); } }
+function stopPresent(){
+  pres.classList.add("hidden"); document.body.style.overflow = ""; $("pStage").innerHTML = "";
+  setFocus(false);
+  if(document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  if(editorOpen()){ $("edDockHost").appendChild($("dock")); renderEditor(); }
+}
+function toggleMenus(force){ pres.classList.toggle("noMenus", force); if(pres.classList.contains("noMenus")) setInk(P.tool); setTimeout(fitStage, 0); }
+function toggleSide(hide){ pres.classList.toggle("noSide", hide); data.sideHidden = pres.classList.contains("noSide"); save(); setTimeout(fitStage, 0); }
+$("pPrev").onclick = () => go(-1); $("pNext").onclick = () => go(1);
+$("pExit").onclick = $("pExitTop").onclick = stopPresent;
+$("pFull").onclick = () => { if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => toast("Full screen isn't allowed here.")); };
+$("sideHide").onclick = () => toggleSide(true); $("sideShow").onclick = () => toggleSide(false);
+$("menusShow").onclick = () => toggleMenus(false);
+$("thumbsToggle").onclick = () => { data.thumbsHidden = !data.thumbsHidden; save(); $("pThumbs").classList.toggle("closed", data.thumbsHidden); $("thumbsToggle").textContent = data.thumbsHidden ? "▸" : "▾"; };
+document.addEventListener("keydown", e => {
+  if(!isPresenting() || e.target.closest("input,textarea,select,dialog,.tool")) return;
+  const k = e.key.toLowerCase();
+  if(["ArrowRight","PageDown"," "].includes(e.key)){ e.preventDefault(); go(1); }
+  else if(["ArrowLeft","PageUp"].includes(e.key)){ e.preventDefault(); go(-1); }
+  else if(e.key === "Escape"){ if(P.focus) setFocus(false); else if(P.tool !== "pointer") setInk("pointer"); else if(!document.fullscreenElement) stopPresent(); }
+  else if(k === "f") $("pFull").click();
+  else if(k === "h") toggleMenus();
+  else if(k === "p") setInk("pen");
+  else if(k === "e") setInk("eraser");
+  else if((e.ctrlKey || e.metaKey) && k === "z"){ e.preventDefault(); inkUndo(); }
+});
+
+// ---------- drawing on slides (saved with each slide) ----------
+const INK_STYLE = {pen:{w:.0045, a:1}, pencil:{w:.0018, a:.8}, highlight:{w:.024, a:.33}};
+const INK_COLORS = ["#e0412f","#1d1d1d","#2a6db0","#1f8a5b","#f2b300","#ffffff","#c4407a"];
+const P = {tool:"pointer", color:INK_COLORS[0], focus:false, line:null, erasing:false, undo:{}};
+$("inkColors").innerHTML = INK_COLORS.map((c, i) => `<button data-c="${c}" class="${i ? "" : "on"}" style="background:${c}" title="Ink color"></button>`).join("");
+$("inkColors").querySelectorAll("[data-c]").forEach(b => b.onclick = () => {
+  P.color = b.dataset.c; $("inkColors").querySelectorAll("[data-c]").forEach(x => x.classList.toggle("on", x === b));
+  if(P.tool === "pointer" || P.tool === "eraser") setInk("pen");
+});
+$("inkBar").querySelectorAll("[data-ink]").forEach(b => b.onclick = () => setInk(b.dataset.ink));
+$("inkBar").querySelectorAll("[data-act]").forEach(b => b.onclick = () => {
+  const a = b.dataset.act;
+  if(a === "undo") inkUndo();
+  if(a === "clear"){ const s = deck.slides[cur]; if(s.ink && s.ink.length){ pushUndo(s); s.ink = []; inkChanged(); } }
+  if(a === "focus") setFocus(!P.focus);
+  if(a === "celebrate") celebrate();
+  if(a === "hide") toggleMenus(true);
+});
+function setInk(t){
+  P.tool = t;
+  $("inkBar").querySelectorAll("[data-ink]").forEach(b => b.classList.toggle("on", b.dataset.ink === t));
+  $("ink").classList.toggle("off", t === "pointer");
+  $("ink").style.cursor = t === "eraser" ? "cell" : "crosshair";
+}
+function setFocus(on){
+  P.focus = on; $("spot").hidden = !on;
+  $("inkBar").querySelector('[data-act="focus"]').classList.toggle("on", on);
+}
+$("pMain").addEventListener("pointermove", e => {
+  if(!P.focus) return;
+  const r = $("pBox").getBoundingClientRect();
+  $("spot").style.setProperty("--x", (e.clientX - r.left) + "px"); $("spot").style.setProperty("--y", (e.clientY - r.top) + "px");
+});
+$("pMain").addEventListener("wheel", e => {
+  if(!P.focus) return; e.preventDefault();
+  const cs = parseFloat(getComputedStyle($("spot")).getPropertyValue("--r")) || 170;
+  $("spot").style.setProperty("--r", Math.max(60, Math.min(600, cs - e.deltaY * .4)) + "px");
+}, {passive:false});
+function sizeInk(){
+  const c = $("ink"), r = c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
+  drawInk();
+}
+function drawInk(){
+  const c = $("ink"), ctx = c.getContext("2d"), s = deck && deck.slides[cur];
+  ctx.clearRect(0, 0, c.width, c.height);
+  if(!s || !s.ink) return;
+  s.ink.forEach(l => {
+    const st = INK_STYLE[l.t] || INK_STYLE.pen;
+    ctx.save(); ctx.globalAlpha = st.a; ctx.strokeStyle = ctx.fillStyle = l.c; ctx.lineWidth = Math.max(1, st.w * c.width);
+    ctx.lineCap = l.t === "highlight" ? "square" : "round"; ctx.lineJoin = "round";
+    const pts = l.p;
+    if(pts.length === 1){ ctx.beginPath(); ctx.arc(pts[0][0] * c.width, pts[0][1] * c.height, ctx.lineWidth / 2, 0, 7); ctx.fill(); }
+    else{
+      ctx.beginPath(); ctx.moveTo(pts[0][0] * c.width, pts[0][1] * c.height);
+      for(let i = 1; i < pts.length - 1; i++){        // smooth the line through midpoints
+        const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2;
+        ctx.quadraticCurveTo(pts[i][0] * c.width, pts[i][1] * c.height, mx * c.width, my * c.height);
+      }
+      const last = pts[pts.length - 1]; ctx.lineTo(last[0] * c.width, last[1] * c.height); ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+function pushUndo(s){ const u = P.undo[s.id] = P.undo[s.id] || []; u.push(JSON.stringify(s.ink || [])); if(u.length > 40) u.shift(); }
+function inkUndo(){ const s = deck.slides[cur], u = P.undo[s.id]; if(!u || !u.length) return; s.ink = JSON.parse(u.pop()); inkChanged(); }
+function inkChanged(){ drawInk(); deck.updated = Date.now(); save(); }
+const inkPt = e => { const r = $("ink").getBoundingClientRect(); return [Math.round((e.clientX - r.left) / r.width * 10000) / 10000, Math.round((e.clientY - r.top) / r.height * 10000) / 10000]; };
+function eraseAt(pt){
+  const s = deck.slides[cur]; if(!s.ink) return;
+  const r = $("ink").getBoundingClientRect(), tol = 14;
+  const near = l => l.p.some(q => Math.hypot((q[0] - pt[0]) * r.width, (q[1] - pt[1]) * r.height) < tol + (INK_STYLE[l.t] || INK_STYLE.pen).w * r.width / 2);
+  const keep = s.ink.filter(l => !near(l));
+  if(keep.length !== s.ink.length){ s.ink = keep; drawInk(); }
+}
+const ink = $("ink");
+ink.addEventListener("pointerdown", e => {
+  if(P.tool === "pointer") return;
+  e.preventDefault(); ink.setPointerCapture(e.pointerId);
+  const s = deck.slides[cur]; pushUndo(s); s.ink = s.ink || [];
+  if(P.tool === "eraser"){ P.erasing = true; eraseAt(inkPt(e)); return; }
+  P.line = {t:P.tool, c:P.tool === "highlight" && P.color === "#e0412f" ? "#f2d600" : P.color, p:[inkPt(e)]};
+  s.ink.push(P.line); drawInk();
+});
+ink.addEventListener("pointermove", e => {
+  if(P.erasing){ eraseAt(inkPt(e)); return; }
+  if(!P.line) return;
+  const pt = inkPt(e), last = P.line.p[P.line.p.length - 1];
+  if(Math.abs(pt[0] - last[0]) + Math.abs(pt[1] - last[1]) < .0015) return;
+  P.line.p.push(pt); drawInk();
+});
+const inkEnd = () => { if(P.line || P.erasing){ P.line = null; P.erasing = false; inkChanged(); } };
+ink.addEventListener("pointerup", inkEnd); ink.addEventListener("pointercancel", inkEnd);
+
+// ---------- celebrate: confetti burst ----------
+function celebrate(){
+  const c = document.createElement("canvas"); c.id = "fx"; document.body.appendChild(c);
+  const dpr = window.devicePixelRatio || 1; c.width = innerWidth * dpr; c.height = innerHeight * dpr;
+  const ctx = c.getContext("2d"), cols = ["#e0412f","#f2b300","#1f8a5b","#2a6db0","#c4407a","#7550c2"];
+  const parts = Array.from({length:220}, () => ({x:c.width * (.2 + Math.random() * .6), y:c.height * .75, vx:(Math.random() - .5) * 22 * dpr, vy:-(12 + Math.random() * 18) * dpr,
+    s:(6 + Math.random() * 8) * dpr, r:Math.random() * 6, vr:(Math.random() - .5) * .4, col:cols[Math.floor(Math.random() * cols.length)]}));
+  const t0 = performance.now();
+  const step = t => {
+    ctx.clearRect(0, 0, c.width, c.height);
+    parts.forEach(p => { p.vy += .55 * dpr; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.col; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore(); });
+    if(t - t0 < 3500) requestAnimationFrame(step); else c.remove();
+  };
+  requestAnimationFrame(step);
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    [523, 659, 784, 1047].forEach((f, i) => {
+      const o = actx.createOscillator(), g = actx.createGain(), t1 = actx.currentTime + i * .12;
+      o.type = "triangle"; o.frequency.value = f; o.connect(g); g.connect(actx.destination);
+      g.gain.setValueAtTime(.0001, t1); g.gain.exponentialRampToValueAtTime(.25, t1 + .02); g.gain.exponentialRampToValueAtTime(.0001, t1 + .4);
+      o.start(t1); o.stop(t1 + .42);
+    });
+  }catch(e){}
+}
+
+// ---------- classroom tools: cards that live in the side dock or float anywhere ----------
+const TOOLS = [
+  {id:"timer", name:"Timer", icon:"⏱", build:toolTimer},
+  {id:"picker", name:"Name picker", icon:"🎡", build:toolPicker},
+  {id:"groups", name:"Group maker", icon:"👥", build:toolGroups},
+  {id:"noise", name:"Noise meter", icon:"🔊", build:toolNoise},
+  {id:"voice", name:"Voice level", icon:"🗣", build:toolVoice},
+  {id:"score", name:"Scoreboard", icon:"🏆", build:toolScore},
+  {id:"light", name:"Traffic light", icon:"🚦", build:toolLight},
+  {id:"dice", name:"Dice", icon:"🎲", build:toolDice},
+  {id:"checklist", name:"Checklist", icon:"✅", build:toolChecklist},
+  {id:"stopwatch", name:"Stopwatch", icon:"⏲", build:toolStopwatch},
+  {id:"jar", name:"Reward jar", icon:"🫙", build:toolJar},
+  {id:"captions", name:"Live captions", icon:"💬", build:toolCaptions},
+  {id:"target", name:"Learning target", icon:"🎯", build:toolTarget},
+  {id:"brainbreak", name:"Brain break", icon:"🤸", build:toolBrainBreak},
+];
+// settings a tool keeps between visits (reward jar count, learning target, …)
+function toolState(id, def){
+  data.toolState = data.toolState || {};
+  if(!data.toolState[id]) data.toolState[id] = def;
+  return data.toolState[id];
+}
+// one live copy of each tool: it keeps running while you change slides, and moves between dock and floating
+const liveTools = new Map();
+let toolZ = 70, toolN = 0;
+function toolPicker_(title, onPick){
+  const d = $("dlg");
+  d.innerHTML = `<h3>${esc(title)}</h3><div class="typeGrid">${TOOLS.map(t => `<button data-tool="${t.id}"><b>${t.icon} ${t.name}</b>${liveTools.has(t.id) ? "<small>Open</small>" : ""}</button>`).join("")}</div><div class="dlgBtns"><button class="btn" id="dX">Close</button></div>`;
+  d.querySelectorAll("[data-tool]").forEach(b => b.onclick = () => { d.close(); onPick(b.dataset.tool); });
+  $("dX").onclick = () => d.close();
+  d.showModal();
+}
+$("toolsHome").onclick = () => toolPicker_("Classroom tools", id => openTool(id));
+$("dockAdd").onclick = () => toolPicker_("Add a tool to your panel", id => dockTool(id));
+function makeTool(id){
+  const t = TOOLS.find(x => x.id === id); if(!t) return null;
+  const el = document.createElement("div"); el.className = "tool"; el.dataset.id = id;
+  el.innerHTML = `<div class="th"><b>${t.icon} ${t.name}</b><span class="tbtns"></span></div><div class="tb"></div>`;
+  const card = {id, el, mode:"", api:{}};
+  card.api = t.build(el.querySelector(".tb")) || {};
+  el.addEventListener("pointerdown", () => { if(card.mode === "floating") el.style.zIndex = ++toolZ; });
+  const head = el.querySelector(".th");
+  head.addEventListener("pointerdown", e => {
+    if(card.mode !== "floating" || e.target.closest("button")) return;
+    const sx = e.clientX - el.offsetLeft, sy = e.clientY - el.offsetTop; head.setPointerCapture(e.pointerId);
+    const mv = ev => { el.style.left = Math.max(0, Math.min(innerWidth - 80, ev.clientX - sx)) + "px"; el.style.top = Math.max(0, Math.min(innerHeight - 40, ev.clientY - sy)) + "px"; };
+    const up = () => { head.removeEventListener("pointermove", mv); head.removeEventListener("pointerup", up); };
+    head.addEventListener("pointermove", mv); head.addEventListener("pointerup", up);
+  });
+  liveTools.set(id, card);
+  return card;
+}
+function paintToolHead(card){
+  const docked = card.mode === "docked", b = card.el.querySelector(".tbtns");
+  b.innerHTML = (docked ? `<button data-b="up" title="Move up">▲</button><button data-b="down" title="Move down">▼</button>` : "")
+    + `<button data-b="min" title="Shrink or grow">${card.el.classList.contains("min") ? "▢" : "–"}</button>`
+    + `<button data-b="move" title="${docked ? "Pop out: float it anywhere on the screen" : "Put it in the tools panel"}">${docked ? "⤢" : "⇲"}</button>`
+    + `<button data-b="close" title="Close">✕</button>`;
+  b.querySelectorAll("[data-b]").forEach(x => x.onclick = () => {
+    const a = x.dataset.b;
+    if(a === "up" && card.el.previousElementSibling){ card.el.previousElementSibling.before(card.el); saveDockOrder(); }
+    if(a === "down" && card.el.nextElementSibling){ card.el.nextElementSibling.after(card.el); saveDockOrder(); }
+    if(a === "min"){ card.el.classList.toggle("min"); paintToolHead(card); }
+    if(a === "move"){ if(docked) floatTool(card); else dockTool(card.id); }
+    if(a === "close") closeTool(card);
+  });
+}
+function placeFloating(card, x, y){
+  card.mode = "floating"; card.el.classList.add("floating");
+  card.el.style.left = (x ?? Math.min(innerWidth - 360, 380 + (toolN % 6) * 32)) + "px";
+  card.el.style.top = (y ?? 60 + (toolN % 6) * 32) + "px"; toolN++;
+  card.el.style.zIndex = ++toolZ; document.body.appendChild(card.el); paintToolHead(card);
+}
+function floatTool(card){
+  const r = card.el.getBoundingClientRect();
+  placeFloating(card, Math.min(innerWidth - 360, r.right + 20), Math.max(10, r.top));
+  saveDockOrder(); dockEmpty();
+}
+// open a tool as a floating window (from the home page, or a tool already open somewhere)
+function openTool(id){
+  const card = liveTools.get(id) || makeTool(id); if(!card) return;
+  if(card.mode === "floating"){ card.el.style.zIndex = ++toolZ; return; }
+  if(card.mode === "docked" && isPresenting()){ card.el.scrollIntoView({block:"nearest", behavior:"smooth"}); return; }
+  placeFloating(card); saveDockOrder(); dockEmpty();
+}
+function dockTool(id, quiet){
+  const card = liveTools.get(id) || makeTool(id); if(!card) return;
+  card.mode = "docked"; card.el.classList.remove("floating"); card.el.style.cssText = "";
+  if(card.el.parentNode !== $("dock")) $("dock").appendChild(card.el);
+  paintToolHead(card); saveDockOrder(); dockEmpty();
+  if(!quiet) card.el.scrollIntoView({block:"nearest", behavior:"smooth"});
+}
+function closeTool(card){
+  if(card.api.close) card.api.close();
+  card.el.remove(); liveTools.delete(card.id); saveDockOrder(); dockEmpty();
+}
+function saveDockOrder(){ data.dock = [...$("dock").querySelectorAll(".tool")].map(e => e.dataset.id); save(); }
+function dockEmpty(){
+  const has = $("dock").querySelector(".tool"), e = $("dock").querySelector(".dockEmpty");
+  if(has && e) e.remove();
+  if(!has && !e) $("dock").insertAdjacentHTML("beforeend", `<div class="dockEmpty">Your tools panel is empty.<br>Choose <b>+ Add</b> to keep a timer, voice levels or any other tool here while you teach.</div>`);
+}
+function buildDock(){
+  if(!Array.isArray(data.dock)) data.dock = ["timer", "voice"];
+  data.dock.forEach(id => { const c = liveTools.get(id); if(!c || c.mode !== "docked") dockTool(id, true); });
+  dockEmpty(); $("dock").scrollTop = 0;
+  $("thumbsToggle").textContent = data.thumbsHidden ? "▸" : "▾";
+}
+let actx = null;
+function beep(times = 3){
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    for(let i = 0; i < times; i++){
+      const o = actx.createOscillator(), g = actx.createGain(), t0 = actx.currentTime + i * .35;
+      o.frequency.value = 880; o.connect(g); g.connect(actx.destination);
+      g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(.3, t0 + .02); g.gain.exponentialRampToValueAtTime(.0001, t0 + .3);
+      o.start(t0); o.stop(t0 + .32);
+    }
+  }catch(e){}
+}
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+const shuffle = a => { a = [...a]; for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+function toolTimer(b){
+  const COLS = ["#2f8f6b","#e0574a","#2f6fc0","#f0a020","#c4407a","#7550c2"];
+  b.innerHTML = `<div class="dial"><div class="pie"></div><i></i></div><div class="big" data-r title="Click to type a time" style="cursor:pointer">5:00</div>
+    <div class="row">${[1,2,3,5,10,15,20,30].map(m => `<button class="chip" data-q="${m}">${m} min</button>`).join("")}</div>
+    <div class="row"><button class="chip" data-add="-60">−1 min</button><button class="btn primary sm" data-go>Start</button><button class="chip" data-reset>Reset</button><button class="chip" data-add="60">+1 min</button></div>
+    <div class="row"><label><input type="checkbox" data-chime checked> Chime when time is up</label></div>
+    <div class="row">${COLS.map((c, i) => `<button class="dot${i ? "" : " on"}" data-c="${c}" style="background:${c}" title="Dial color"></button>`).join("")}</div>`;
+  const q = s => b.querySelector(s);
+  let total = 300, left = 300, end = 0, iv = null, col = COLS[0];
+  const show = () => {
+    const p = total > 0 ? Math.max(0, left) / total : 0;
+    q(".pie").style.background = `conic-gradient(${col} ${p * 360}deg, transparent 0)`;
+    q("[data-r]").textContent = fmt(Math.max(0, Math.ceil(left)));
+    q("[data-r]").style.color = iv && left <= 10 ? "var(--danger)" : "";
+  };
+  const stop = () => { clearInterval(iv); iv = null; q("[data-go]").textContent = "Start"; };
+  const setTime = secs => { stop(); total = left = Math.max(0, secs); show(); };
+  b.querySelectorAll("[data-q]").forEach(x => x.onclick = () => setTime(x.dataset.q * 60));
+  b.querySelectorAll("[data-add]").forEach(x => x.onclick = () => {
+    const d = +x.dataset.add; left = Math.max(0, left + d); total = Math.max(total + (d > 0 ? d : 0), left, 1);
+    if(iv) end = Date.now() + left * 1000; show();
+  });
+  b.querySelectorAll("[data-c]").forEach(x => x.onclick = () => { col = x.dataset.c; b.querySelectorAll("[data-c]").forEach(y => y.classList.toggle("on", y === x)); show(); });
+  q("[data-r]").onclick = async () => {
+    const v = await promptBox("Set the timer (minutes, or m:ss)", fmt(total)); if(v === null) return;
+    const m = String(v).trim().match(/^(\d+)(?::(\d{1,2}))?$/); if(!m){ toast("Type minutes like 7 or 7:30."); return; }
+    setTime(+m[1] * 60 + (+m[2] || 0));
+  };
+  q("[data-go]").onclick = () => {
+    if(iv){ stop(); return; }
+    if(left <= 0) left = total; if(left <= 0) return;
+    end = Date.now() + left * 1000; q("[data-go]").textContent = "Pause";
+    iv = setInterval(() => {
+      left = (end - Date.now()) / 1000; show();
+      if(left <= 0){ stop(); left = 0; show(); q("[data-r]").textContent = "Time's up!"; if(q("[data-chime]").checked) beep(); }
+    }, 200);
+  };
+  q("[data-reset]").onclick = () => setTime(total);
+  show();
+  return {close: stop};
+}
+function toolStopwatch(b){
+  b.innerHTML = `<div class="big" data-r>0:00</div><div class="row"><button class="btn primary" data-go>Start</button><button class="btn" data-reset>Reset</button></div>`;
+  const q = s => b.querySelector(s); let acc = 0, t0 = 0, iv = null;
+  const show = () => q("[data-r]").textContent = fmt((acc + (iv ? Date.now() - t0 : 0)) / 1000);
+  q("[data-go]").onclick = () => { if(iv){ acc += Date.now() - t0; clearInterval(iv); iv = null; q("[data-go]").textContent = "Start"; } else { t0 = Date.now(); iv = setInterval(show, 250); q("[data-go]").textContent = "Pause"; } show(); };
+  q("[data-reset]").onclick = () => { acc = 0; t0 = Date.now(); show(); };
+  return {close: () => clearInterval(iv)};
+}
+function toolPicker(b){
+  let names = data.classList.length ? [...data.classList] : [];
+  b.innerHTML = `<canvas width="320" height="320" style="display:block;margin:0 auto;max-width:100%"></canvas><div class="big" data-r style="font-size:36px;min-height:46px"></div>
+    <div class="row"><button class="btn primary" data-spin>Spin</button><label><input type="checkbox" data-rm> Remove after pick</label><button class="btn sm" data-reset>Reset</button></div>
+    ${names.length ? "" : `<p class="hint">Add names with <b>Class list</b> on the home page. Showing numbers for now.</p>`}`;
+  if(!names.length) names = Array.from({length:12}, (_, i) => String(i + 1));
+  const all = [...names];
+  const cv = b.querySelector("canvas"), cx = cv.getContext("2d"); let ang = 0, spinning = false;
+  const COL = ["#2f6f62","#d0632b","#2a6db0","#7550c2","#c99700","#1f8a5b","#b3412f","#3d7d99"];
+  function draw(){
+    const n = names.length, r = 155; cx.clearRect(0, 0, 320, 320);
+    if(!n){ cx.fillStyle = "#999"; cx.font = "18px system-ui"; cx.textAlign = "center"; cx.fillText("Everyone has had a turn!", 160, 165); return; }
+    for(let i = 0; i < n; i++){
+      const a0 = ang + i * 2 * Math.PI / n, a1 = a0 + 2 * Math.PI / n;
+      cx.beginPath(); cx.moveTo(160, 160); cx.arc(160, 160, r, a0, a1); cx.closePath(); cx.fillStyle = COL[i % COL.length]; cx.fill();
+      cx.save(); cx.translate(160, 160); cx.rotate((a0 + a1) / 2); cx.fillStyle = "#fff"; cx.font = `bold ${n > 24 ? 10 : 14}px system-ui`; cx.textAlign = "right"; cx.fillText(names[i].slice(0, 16), r - 8, 5); cx.restore();
+    }
+    cx.beginPath(); cx.moveTo(305, 160); cx.lineTo(320, 150); cx.lineTo(320, 170); cx.closePath(); cx.fillStyle = "#111"; cx.fill();
+  }
+  draw();
+  b.querySelector("[data-spin]").onclick = () => {
+    if(spinning || !names.length) return; spinning = true; b.querySelector("[data-r]").textContent = "";
+    const start = ang, total = 6 * Math.PI + Math.random() * 2 * Math.PI, dur = 3200, t0 = performance.now();
+    const step = t => {
+      const k = Math.min(1, (t - t0) / dur); ang = start + total * (1 - Math.pow(1 - k, 3)); draw();
+      if(k < 1) return requestAnimationFrame(step);
+      spinning = false;
+      const n = names.length, rel = ((2 * Math.PI - (ang % (2 * Math.PI))) + 2 * Math.PI) % (2 * Math.PI), idx = Math.floor(rel / (2 * Math.PI / n)) % n;
+      const pick = names[idx]; b.querySelector("[data-r]").textContent = pick; beep(1);
+      if(b.querySelector("[data-rm]").checked) setTimeout(() => { names.splice(idx, 1); draw(); }, 900);
+    };
+    requestAnimationFrame(step);
+  };
+  b.querySelector("[data-reset]").onclick = () => { names = [...all]; b.querySelector("[data-r]").textContent = ""; draw(); };
+}
+function toolGroups(b){
+  b.innerHTML = `<div class="row"><select data-mode><option value="size">People per group</option><option value="count">Number of groups</option></select><input type="number" min="2" max="20" value="4" data-n><button class="btn primary" data-go>Make groups</button></div><div class="groups" data-out></div>`;
+  b.querySelector("[data-go]").onclick = () => {
+    const names = data.classList; const out = b.querySelector("[data-out]");
+    if(names.length < 2){ out.innerHTML = `<p class="hint">Add at least two names with <b>Class list</b> on the home page.</p>`; return; }
+    const n = Math.max(1, +b.querySelector("[data-n]").value || 2);
+    const k = b.querySelector("[data-mode]").value === "size" ? Math.max(1, Math.round(names.length / n)) : Math.min(n, names.length);
+    const g = Array.from({length:k}, () => []); shuffle(names).forEach((x, i) => g[i % k].push(x));
+    out.innerHTML = g.map((m, i) => `<div><b>Group ${i + 1}</b>${m.map(esc).join("<br>")}</div>`).join("");
+  };
+}
+function toolNoise(b){
+  b.innerHTML = `<div class="meter"><i></i></div><div class="big" data-r style="font-size:40px;margin-top:10px">—</div>
+    <div class="row">Sensitivity <input type="range" min="1" max="10" value="5" data-k></div>
+    <div class="row"><button class="btn primary" data-go>Start listening</button></div><p class="hint">Uses the microphone only to measure loudness. Nothing is recorded or sent anywhere.</p>`;
+  const q = s => b.querySelector(s); let stream = null, raf = 0, ctx = null;
+  async function start(){
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const an = ctx.createAnalyser(); an.fftSize = 1024; ctx.createMediaStreamSource(stream).connect(an);
+      const buf = new Float32Array(an.fftSize); let lvl = 0;
+      const loop = () => {
+        an.getFloatTimeDomainData(buf); let sum = 0; for(const v of buf) sum += v * v;
+        const rms = Math.sqrt(sum / buf.length), k = +q("[data-k]").value;
+        lvl = lvl * .8 + Math.min(100, rms * 400 * k / 5) * .2;
+        const col = lvl < 40 ? "#1f8a5b" : lvl < 70 ? "#c99700" : "#b3412f";
+        q(".meter i").style.width = lvl + "%"; q(".meter i").style.background = col;
+        q("[data-r]").textContent = lvl < 40 ? "Nice and calm" : lvl < 70 ? "Getting loud" : "Too loud!"; q("[data-r]").style.color = col;
+        raf = requestAnimationFrame(loop);
+      };
+      loop(); q("[data-go]").textContent = "Stop";
+    }catch(e){ q("[data-r]").textContent = "Microphone blocked"; q("[data-r]").style.fontSize = "22px"; }
+  }
+  function stop(){ cancelAnimationFrame(raf); if(stream) stream.getTracks().forEach(t => t.stop()); if(ctx) ctx.close(); stream = ctx = null; q("[data-go]").textContent = "Start listening"; }
+  q("[data-go]").onclick = () => stream ? stop() : start();
+  return {close: stop};
+}
+function toolVoice(b){
+  const L = [["Silent","No talking","#55627f"],["Whisper","Only your neighbor hears","#3f9a76"],["Partner talk","Quiet table voice","#3b86a8"],["Group talk","Normal classroom voice","#d68a3a"],["Presenter","Clear and loud for everyone","#c65a5a"]];
+  b.innerHTML = `<div class="vcard" title="Tap to go to the next level"><b></b><span></span><small></small></div>
+    <div class="vrow">${L.map((l, i) => `<button data-v="${i}" style="background:${l[2]}">${i}</button>`).join("")}</div>
+    <p class="hint" style="text-align:center">Tap the card or a number to change the level</p>`;
+  let lv = 0;
+  const show = () => {
+    const [name, sub, col] = L[lv], c = b.querySelector(".vcard");
+    c.style.background = col; c.querySelector("b").textContent = lv; c.querySelector("span").textContent = name; c.querySelector("small").textContent = sub;
+    b.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("on", +x.dataset.v === lv));
+  };
+  b.querySelector(".vcard").onclick = () => { lv = (lv + 1) % L.length; show(); };
+  b.querySelectorAll("[data-v]").forEach(x => x.onclick = () => { lv = +x.dataset.v; show(); });
+  show();
+}
+function toolScore(b){
+  b.innerHTML = `<div class="teams">${[0,1].map(i => `<div><input value="Team ${i + 1}"><div class="big" data-s="${i}">0</div><div class="row"><button class="btn" data-d="${i}" data-x="-1">−</button><button class="btn primary" data-d="${i}" data-x="1">+1</button></div></div>`).join("")}</div><div class="row"><button class="btn sm" data-reset>Reset</button></div>`;
+  const s = [0, 0], show = () => s.forEach((v, i) => b.querySelector(`[data-s="${i}"]`).textContent = v);
+  b.querySelectorAll("[data-d]").forEach(x => x.onclick = () => { s[x.dataset.d] += +x.dataset.x; show(); });
+  b.querySelector("[data-reset]").onclick = () => { s[0] = s[1] = 0; show(); };
+}
+function toolLight(b){
+  b.innerHTML = `<div class="tl">${["#e0412f","#f2b300","#28b463"].map(c => `<button style="background:${c};color:${c}"></button>`).join("")}</div>`;
+  b.querySelectorAll(".tl button").forEach(x => x.onclick = () => b.querySelectorAll(".tl button").forEach(y => y.classList.toggle("on", y === x)));
+}
+function toolDice(b){
+  const F = ["⚀","⚁","⚂","⚃","⚄","⚅"];
+  b.innerHTML = `<div class="dice" data-r>⚀</div><div class="big" data-t style="font-size:28px"></div><div class="row"><select data-n><option>1</option><option selected>2</option><option>3</option></select> dice <button class="btn primary" data-go>Roll</button></div>`;
+  b.querySelector("[data-go]").onclick = () => {
+    const n = +b.querySelector("[data-n]").value; let i = 0;
+    const iv = setInterval(() => {
+      const r = Array.from({length:n}, () => Math.floor(Math.random() * 6));
+      b.querySelector("[data-r]").textContent = r.map(x => F[x]).join(" ");
+      if(++i > 10){ clearInterval(iv); b.querySelector("[data-t]").textContent = n > 1 ? "Total: " + r.reduce((a, x) => a + x + 1, 0) : ""; }
+    }, 70);
+  };
+}
+function toolChecklist(b){
+  b.innerHTML = `<input type="text" placeholder="Type a step and press Enter"><div class="checklist" data-l style="margin-top:8px"></div>`;
+  const list = b.querySelector("[data-l]");
+  b.querySelector("input").onkeydown = e => {
+    if(e.key !== "Enter" || !e.target.value.trim()) return;
+    const l = document.createElement("label"); l.innerHTML = `<input type="checkbox"> <span>${esc(e.target.value.trim())}</span>`;
+    l.querySelector("input").onchange = () => { l.style.textDecoration = l.querySelector("input").checked ? "line-through" : ""; const all = [...list.querySelectorAll("input")]; if(all.length && all.every(x => x.checked)){ toast("🎉 All done!"); beep(2); } };
+    list.appendChild(l); e.target.value = "";
+  };
+}
+
+// ---------- reward jar: fill it with pom-poms, celebrate when it's full ----------
+function toolJar(b){
+  const S = toolState("jar", {n:0, goal:20, reward:"Extra recess"});
+  const cid = "jc" + newId(), JAR = "M28 34 h64 v8 q14 6 14 22 v66 q0 14 -14 14 h-64 q-14 0 -14 -14 v-66 q0 -16 14 -22z";
+  const COL = ["#e0412f","#f2b300","#2a6db0","#1f8a5b","#c4407a","#7550c2","#d0632b","#3bb3c3"];
+  b.innerHTML = `<svg class="jar" viewBox="0 0 120 150" aria-hidden="true">
+      <defs><clipPath id="${cid}"><path d="${JAR}"/></clipPath></defs>
+      <path d="${JAR}" fill="#eef6fb"/><g clip-path="url(#${cid})" data-balls></g>
+      <path d="${JAR}" fill="none" stroke="#7aa6c2" stroke-width="3"/>
+      <rect x="26" y="20" width="68" height="14" rx="4" fill="#b08654"/><rect x="22" y="16" width="76" height="7" rx="3" fill="#8a6533"/>
+    </svg>
+    <div class="big" data-c style="font-size:40px"></div>
+    <div class="row"><button class="btn" data-d="-1">−1</button><button class="btn primary" data-d="1">+1</button><button class="btn" data-d="5">+5</button></div>
+    <span class="lab">Reward when it's full</span><input class="full" data-rw>
+    <div class="row" style="justify-content:space-between">Goal <input type="number" min="1" max="200" data-goal style="width:80px"><button class="chip" data-reset>Empty the jar</button></div>`;
+  const q = s => b.querySelector(s);
+  q("[data-rw]").value = S.reward; q("[data-goal]").value = S.goal;
+  function draw(){
+    // pack balls in rows from the bottom; sizes shrink as the goal grows so a full jar is full
+    const W = 92, Hh = 102, r = Math.max(3, Math.min(11, Math.sqrt(W * Hh / S.goal / 3.6)));
+    const per = Math.max(1, Math.floor(W / (r * 2))), out = [];
+    for(let i = 0; i < Math.min(S.n, S.goal); i++){
+      const row = Math.floor(i / per), col = i % per, jit = ((i * 37) % 7 - 3) * .35;
+      const x = 14 + r + col * (W / per) + (row % 2 ? r * .5 : 0) + jit, y = 144 - r - row * r * 1.75;
+      out.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r * .98).toFixed(1)}" fill="${COL[(i * 5) % COL.length]}"/>`);
+    }
+    q("[data-balls]").innerHTML = out.join("");
+    q("[data-c]").textContent = `${S.n} / ${S.goal}`;
+  }
+  b.querySelectorAll("[data-d]").forEach(x => x.onclick = () => {
+    const was = S.n; S.n = Math.max(0, Math.min(S.goal, S.n + +x.dataset.d)); save(); draw();
+    if(was < S.goal && S.n >= S.goal){ celebrate(); toast(`🎉 The jar is full! Reward: ${S.reward || "you earned it!"}`); }
+  });
+  q("[data-rw]").oninput = e => { S.reward = e.target.value; save(); };
+  q("[data-goal]").onchange = e => { S.goal = Math.max(1, Math.min(200, Math.round(+e.target.value) || 20)); e.target.value = S.goal; S.n = Math.min(S.n, S.goal); save(); draw(); };
+  q("[data-reset]").onclick = async () => { if(await confirmBox("Empty the reward jar?", "Empty it")){ S.n = 0; save(); draw(); } };
+  draw();
+}
+
+// ---------- live captions: speech to text, optionally translated on this computer ----------
+const CAP_FROM = [["en-US","en","English"],["es-US","es","Spanish"],["fr-FR","fr","French"],["pt-BR","pt","Portuguese"],["zh-CN","zh","Chinese"],["ar-SA","ar","Arabic"]];
+const CAP_TO = [["","No translation"],["es","Spanish"],["zh","Chinese"],["vi","Vietnamese"],["ar","Arabic"],["pt","Portuguese"],["fr","French"],["ru","Russian"],["ko","Korean"],["uk","Ukrainian"],["ht","Haitian Creole"],["tl","Tagalog"],["so","Somali"],["en","English"]];
+function toolCaptions(b){
+  const S = toolState("captions", {from:"en-US", to:"", size:1});
+  b.innerHTML = `<div class="row" style="justify-content:flex-start;margin:0">
+      <label>Speak <select data-from>${CAP_FROM.map(([v, , n]) => `<option value="${v}">${n}</option>`).join("")}</select></label>
+      <label>Show <select data-to>${CAP_TO.map(([v, n]) => `<option value="${v}">${n}</option>`).join("")}</select></label></div>
+    <div class="row" style="justify-content:flex-start"><button class="btn primary sm" data-go>🎤 Start</button><button class="chip" data-clear>Clear</button><button class="chip" data-sz="-1">A−</button><button class="chip" data-sz="1">A+</button></div>
+    <div class="capBox" style="--s:${S.size}"><div class="ph">Press Start and talk. Captions appear here.</div></div>
+    <p class="hint" data-msg>Works best in Chrome or Edge. Classboard saves nothing, but the browser sends your voice to its speech service (Google in Chrome) to turn it into text.</p>`;
+  const q = s => b.querySelector(s), box = q(".capBox");
+  q("[data-from]").value = S.from; q("[data-to]").value = S.to;
+  let rec = null, on = false, tr = null, trPair = "", interimEl = null;
+  const msg = t => q("[data-msg]").textContent = t;
+  const srcLang = () => (CAP_FROM.find(x => x[0] === S.from) || CAP_FROM[0])[1];
+  async function translator(){
+    if(!S.to || S.to === srcLang()) return null;
+    const pair = srcLang() + ">" + S.to; if(tr && trPair === pair) return tr;
+    const T = window.Translator;
+    if(!T){ msg("This browser can't translate on its own (it needs Chrome or Edge 138 or newer). Captions still work."); return null; }
+    try{
+      const a = await T.availability({sourceLanguage:srcLang(), targetLanguage:S.to});
+      if(a === "unavailable"){ msg("That language pair isn't available for translation on this computer. Captions still work."); return null; }
+      if(a !== "available") msg("Downloading the language pack (one time)…");
+      tr = await T.create({sourceLanguage:srcLang(), targetLanguage:S.to}); trPair = pair; msg("Translating on this computer.");
+      return tr;
+    }catch(e){ msg("Translation didn't start: " + (e.message || e)); return null; }
+  }
+  function line(text){
+    const ph = box.querySelector(".ph"); if(ph) ph.remove();
+    const d = document.createElement("div"); d.className = "ln"; d.textContent = text;
+    box.insertBefore(d, interimEl && interimEl.parentNode ? interimEl : null);
+    while(box.querySelectorAll(".ln").length > 40) box.querySelector(".ln").remove();
+    box.scrollTop = box.scrollHeight;
+    return d;
+  }
+  async function onFinal(text){
+    const d = line(text);
+    const t = await translator();
+    if(t){ try{ const out = await t.translate(text); const s = document.createElement("span"); s.className = "tr"; s.textContent = out; d.appendChild(s); box.scrollTop = box.scrollHeight; }catch(e){} }
+  }
+  function start(){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ msg("This browser can't listen. Use Chrome or Edge for live captions."); return; }
+    rec = new SR(); rec.continuous = true; rec.interimResults = true; rec.lang = S.from;
+    rec.onresult = e => {
+      let interim = "";
+      for(let i = e.resultIndex; i < e.results.length; i++){
+        const t = e.results[i][0].transcript.trim();
+        if(e.results[i].isFinal){ if(t) onFinal(t); } else interim += t + " ";
+      }
+      if(!interimEl){ interimEl = document.createElement("div"); interimEl.className = "ln im"; }
+      interimEl.textContent = interim.trim(); if(interim && !interimEl.parentNode) box.appendChild(interimEl);
+      if(!interim && interimEl.parentNode) interimEl.remove();
+      box.scrollTop = box.scrollHeight;
+    };
+    rec.onerror = e => {
+      if(e.error === "not-allowed" || e.error === "service-not-allowed"){ msg("The microphone is blocked. Allow it from the address bar, then press Start again."); stop(); }
+      else if(e.error === "network"){ msg("Captions need the internet. Check the connection and press Start again."); stop(); }
+    };
+    rec.onend = () => { if(on) setTimeout(() => { try{ rec && rec.start(); }catch(e){} }, 250); };    // the browser stops after a pause; keep going
+    try{ rec.start(); }catch(e){}
+    on = true; q("[data-go]").textContent = "■ Stop"; translator();
+  }
+  function stop(){ on = false; if(rec){ rec.onend = null; try{ rec.stop(); }catch(e){} rec = null; } q("[data-go]").textContent = "🎤 Start"; if(interimEl) interimEl.remove(); }
+  q("[data-go]").onclick = () => on ? stop() : start();
+  q("[data-clear]").onclick = () => { box.innerHTML = ""; };
+  q("[data-from]").onchange = e => { S.from = e.target.value; save(); tr = null; if(on){ stop(); start(); } };
+  q("[data-to]").onchange = e => { S.to = e.target.value; save(); tr = null; if(on) translator(); };
+  b.querySelectorAll("[data-sz]").forEach(x => x.onclick = () => { S.size = Math.max(.6, Math.min(2.4, Math.round((S.size + x.dataset.sz * .15) * 100) / 100)); save(); box.style.setProperty("--s", S.size); });
+  return {close: stop};
+}
+
+// ---------- learning target: today's "I can" and how students know they've got it ----------
+function toolTarget(b){
+  const S = toolState("target", {subject:"Math", ican:"I can add two-digit numbers by making a ten.", criteria:["I can show my thinking with a drawing or numbers","I can explain my answer to a partner"]});
+  function view(){
+    b.innerHTML = `<div class="tgt">${S.subject ? `<span class="subj">${esc(S.subject)}</span>` : ""}<div class="ican">${esc(S.ican || "I can …")}</div>
+      ${S.criteria.filter(Boolean).length ? `<b style="font-size:14px;color:var(--muted)">I'll know I've got it when…</b><ul>${S.criteria.filter(Boolean).map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : ""}</div>
+      <div class="row"><button class="chip" data-edit>✎ Change</button></div>`;
+    b.querySelector("[data-edit]").onclick = edit;
+  }
+  function edit(){
+    b.innerHTML = `<span class="lab">Subject</span><input class="full" data-s placeholder="Math, Reading, Science…">
+      <span class="lab">Learning target</span><textarea class="full" data-i placeholder="I can …"></textarea>
+      <span class="lab">Success criteria (one per line)</span><textarea class="full" data-c placeholder="I can …"></textarea>
+      <div class="row"><button class="btn" data-x>Cancel</button><button class="btn primary" data-ok>Save</button></div>`;
+    const q = s => b.querySelector(s);
+    q("[data-s]").value = S.subject; q("[data-i]").value = S.ican; q("[data-c]").value = S.criteria.join("\n");
+    q("[data-x]").onclick = view;
+    q("[data-ok]").onclick = () => {
+      S.subject = q("[data-s]").value.trim(); S.ican = q("[data-i]").value.trim();
+      S.criteria = q("[data-c]").value.split("\n").map(x => x.trim()).filter(Boolean); save(); view();
+    };
+    q("[data-i]").focus();
+  }
+  view();
+}
+
+// ---------- brain breaks: pick a quick activity, with a built-in countdown ----------
+const BREAKS = {
+  Move:[["🦘","Kangaroo hops","Hop in place 15 times, then freeze like a statue."],["🏃","Run in place","Run on the spot as fast as you can for 20 seconds."],["🙆","Reach for the sky","Stretch up high, then touch your toes. Do it 5 times slowly."],["🦩","Flamingo balance","Stand on one foot and count to 15. Switch feet."],["🤖","Robot dance","Move like a robot for 30 seconds. No talking, just beeps!"],["🪑","Chair push-ups","Hands on your desk, lean in and push back 10 times."],["🌀","Arm circles","10 small circles forward, 10 big circles backward."],["🐻","Bear walk","Walk around your desk on hands and feet, slowly."]],
+  Calm:[["🌬️","Balloon breaths","Breathe in for 4 like filling a balloon, out for 4 letting it go. Five times."],["🖐️","Finger breathing","Trace your hand: breathe in going up a finger, out going down."],["👀","5-4-3-2-1","Find 5 things you see, 4 you hear, 3 you can touch, 2 you smell, 1 you taste."],["🐢","Turtle time","Curl up small, count to 10 quietly, then slowly come out of your shell."],["🧘","Mountain pose","Stand tall and still like a mountain. Feel your feet on the floor for 30 seconds."],["☁️","Cloud watching","Close your eyes and picture a cloud. What shape is it? Share with a partner after."]],
+  Silly:[["🙃","Opposite day","Teacher says a move, everyone does the opposite!"],["🐓","Animal sounds","Teacher names an animal; everyone acts it out without sound."],["🤪","Silly faces","Make the silliest face you can for 5 seconds. Freeze! Now another one."],["🎤","Air band","Pick an air instrument and play along to an imaginary song for 30 seconds."],["🧊","Freeze dance","Dance until the teacher says freeze. Anyone who moves sits down."],["🔤","Spell it out","Spell a word with your whole body, one letter at a time."]]
+};
+function toolBrainBreak(b){
+  const COLS = {Move:"#d0632b", Calm:"#3b86a8", Silly:"#7550c2"};
+  let cat = "All", cur = null, iv = null, left = 0;
+  b.innerHTML = `<div class="row" style="margin:0 0 8px">${["All", ...Object.keys(BREAKS)].map(c => `<button class="chip" data-cat="${c}">${c}</button>`).join("")}</div>
+    <div class="bbCard" data-card></div>
+    <div class="row"><button class="btn primary" data-pick>🎲 Pick a break</button></div>
+    <div class="row"><span data-t class="big" style="font-size:28px;min-width:70px"></span>${[1,2,3].map(m => `<button class="chip" data-go="${m}">${m} min</button>`).join("")}</div>`;
+  const q = s => b.querySelector(s);
+  const pool = () => cat === "All" ? Object.entries(BREAKS).flatMap(([k, v]) => v.map(x => [k, ...x])) : BREAKS[cat].map(x => [cat, ...x]);
+  function show(){
+    const c = q("[data-card]");
+    if(!cur){ c.style.background = "#55627f"; c.innerHTML = `<div class="em">🤸</div><b>Time for a brain break?</b><small>Pick a category, then press Pick a break.</small>`; return; }
+    c.style.background = COLS[cur[0]]; c.innerHTML = `<div class="em">${cur[1]}</div><b>${esc(cur[2])}</b><small>${esc(cur[3])}</small>`;
+  }
+  b.querySelectorAll("[data-cat]").forEach(x => x.onclick = () => { cat = x.dataset.cat; b.querySelectorAll("[data-cat]").forEach(y => y.style.outline = y === x ? "2px solid var(--ink)" : ""); });
+  b.querySelector('[data-cat="All"]').style.outline = "2px solid var(--ink)";
+  q("[data-pick]").onclick = () => { const p = pool().filter(x => !cur || x[2] !== cur[2]); cur = p[Math.floor(Math.random() * p.length)]; show(); };
+  const stopT = () => { clearInterval(iv); iv = null; };
+  b.querySelectorAll("[data-go]").forEach(x => x.onclick = () => {
+    stopT(); left = x.dataset.go * 60; q("[data-t]").textContent = fmt(left);
+    iv = setInterval(() => { left--; q("[data-t]").textContent = left > 0 ? fmt(left) : "Done!"; if(left <= 0){ stopT(); beep(2); } }, 1000);
+  });
+  show();
+  return {close: stopT};
+}
+
+// ---------- start ----------
+openDB().then(load).then(saved => {
+  if(saved && Array.isArray(saved.decks)) data = Object.assign({decks:[], classList:[]}, saved);
+  showHome();
+  if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+});
+})();
+</script>
+</body>
+</html>
