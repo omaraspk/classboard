@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Classboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap">
 <style>
 :root{
   --bg:#f4f1ea; --panel:#fff; --ink:#1f2a2e; --muted:#6b7478; --line:#e2ddd2;
@@ -169,6 +172,11 @@ h2{font-size:17px;margin:24px 0 10px}
 .inkColors{display:flex;gap:6px;background:#fff;border-radius:14px;padding:8px 10px}
 .inkColors button{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #0003}
 .inkColors button.on{box-shadow:0 0 0 3px var(--ink)}
+.inkSizes{display:flex;gap:2px;align-items:center;background:#fff;border-radius:14px;padding:4px 6px}
+.inkSizes button{width:30px;height:30px;border:0;border-radius:9px;background:none;display:flex;align-items:center;justify-content:center;padding:0}
+.inkSizes button:hover{background:#f0ede6}
+.inkSizes button.on{background:#e3efea;box-shadow:inset 0 0 0 2px var(--accent)}
+.inkSizes button i{display:block;border-radius:50%;background:#333}
 .navBar{margin-left:auto;display:flex;align-items:center;gap:4px;background:#1f2629;border-radius:12px;padding:5px;color:#fff}
 .navBar button{background:#2d373b;border:0;color:#fff;border-radius:8px;padding:8px 12px;font-weight:600}
 .navBar button:hover{background:#3b484d}
@@ -327,7 +335,7 @@ dialog textarea{width:100%;min-height:220px;padding:8px;border:1px solid var(--l
     <input type="file" id="bgFile" accept="image/*" hidden>
   </div>
   <aside id="edRight">
-    <div class="adds"><button class="dashBtn" id="addSlide">＋ Add a slide</button><button class="dashBtn" id="addBlank">＋ Blank slide</button></div>
+    <div class="adds"><button class="dashBtn" id="addSlide">＋ Add a slide</button><button class="dashBtn" id="addBlank">＋ Title slide</button></div>
     <div id="slideList"></div>
   </aside>
 </section>
@@ -361,6 +369,7 @@ dialog textarea{width:100%;min-height:220px;padding:8px;border:1px solid var(--l
       <button data-act="hide" title="Hide menus (H)"><span class="i">🙈</span>Hide menus</button>
     </div>
     <div class="inkColors" id="inkColors"></div>
+    <div class="inkSizes" id="inkSizes" title="Line thickness"></div>
     <div class="navBar">
       <button id="pPrev" title="Previous (←)">‹</button><span id="pNum"></span><button id="pNext" title="Next (→)">›</button>
       <button id="pFull" title="Full screen (F)">⛶</button><button id="pExit" title="Exit (Esc)">✕ Exit</button>
@@ -505,6 +514,13 @@ function makeSlide(type, extra){
   if(type === "blank") s.title = "";
   return Object.assign(s, extra || {});
 }
+// The everyday new slide: a big title and a subtitle, both normal text boxes the teacher can move, edit or delete
+function titleSlide(){
+  return makeSlide("blank", {items:[
+    {id:newId(), kind:"text", x:.05, y:.3, w:.9, h:.2, fs:6.4, text:"YOUR TITLE HERE", font:"display", align:"center"},
+    {id:newId(), kind:"text", x:.15, y:.54, w:.7, h:.1, fs:3, text:"Add a subtitle", align:"center"}
+  ]});
+}
 // A slide = its colors/background + its main content (by type) + things placed on top (items)
 function renderStage(slide, d, opts = {}){
   const th = theme(slide.theme || d.theme);
@@ -546,7 +562,9 @@ const SHAPES = {
   speech:"border-radius:3cqw 3cqw 3cqw 0", diamond:"clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"
 };
 function itemHTML(it){
-  const box = `left:${it.x * 100}%;top:${it.y * 100}%;width:${it.w * 100}%;height:${it.h * 100}%;font-size:${it.fs || 3}cqw;${it.ink ? `color:${it.ink};` : ""}`;
+  const box = `left:${it.x * 100}%;top:${it.y * 100}%;width:${it.w * 100}%;height:${it.h * 100}%;font-size:${it.fs || 3}cqw;${it.ink ? `color:${it.ink};` : ""}`
+    + (it.font === "display" ? `font-family:'Lilita One','Arial Black',Impact,sans-serif;` : "")
+    + (it.align === "center" ? "justify-content:center;text-align:center;" : "");
   if(it.kind === "image") return `<div class="item k-image" data-id="${it.id}" style="${box}"><img alt="" src="${esc(it.src)}"><span class="hd"></span></div>`;
   const fill = it.kind === "text" ? "" : `background:${it.fill || "#ffe680"};`;
   const shape = it.kind === "shape" ? SHAPES[it.shape] || "" : "";
@@ -589,7 +607,7 @@ function showHome(){
 $("newDeck").onclick = async () => {
   const name = await promptBox("Name your slideshow", "Monday morning");
   if(name === null) return;
-  const d = {id:newId(), name:name.trim() || "Untitled slideshow", theme:"paper", created:Date.now(), updated:Date.now(), slides:[makeSlide("title")]};
+  const d = {id:newId(), name:name.trim() || "Untitled slideshow", theme:"paper", created:Date.now(), updated:Date.now(), slides:[titleSlide()]};
   data.decks.push(d); save(); openEditor(d);
 };
 
@@ -612,11 +630,12 @@ function openEditor(d){
 function touch(){ deck.updated = Date.now(); save(); }
 const curSlide = () => deck && deck.slides[cur];
 function renderEditor(){ renderSlideList(); renderCanvas(); }
+const slideName = s => s.title || ((s.items || []).find(x => x.kind === "text" && (x.text || "").trim()) || {}).text || TYPE_NAME[s.type] || "";
 function renderSlideList(){
   const list = $("slideList"); list.innerHTML = "";
   deck.slides.forEach((s, i) => {
     const it = document.createElement("div"); it.className = "sItem" + (i === cur ? " on" : "");
-    it.innerHTML = `<span class="n">${i + 1}</span><div class="sw"><div class="sbox thumbStage"><button class="sDel" title="Delete slide">🗑</button></div><div class="lbl">${esc(s.title || TYPE_NAME[s.type] || "")}</div></div>`;
+    it.innerHTML = `<span class="n">${i + 1}</span><div class="sw"><div class="sbox thumbStage"><button class="sDel" title="Delete slide">🗑</button></div><div class="lbl">${esc(slideName(s))}</div></div>`;
     it.querySelector(".sbox").appendChild(renderStage(s, deck, {thumb:true}));
     it.onclick = e => { if(e.target.closest(".sDel")) return; cur = i; selId = null; renderEditor(); };
     it.querySelector(".sDel").onclick = () => deleteSlide(i);
@@ -627,7 +646,7 @@ function renderSlideList(){
 function refreshThumb(){
   const it = $("slideList").children[cur], s = curSlide(); if(!it || !s) return;
   it.querySelector(".sbox .stage").replaceWith(renderStage(s, deck, {thumb:true}));
-  it.querySelector(".lbl").textContent = s.title || TYPE_NAME[s.type] || "";
+  it.querySelector(".lbl").textContent = slideName(s);
 }
 let thumbT; const thumbSoon = () => { clearTimeout(thumbT); thumbT = setTimeout(refreshThumb, 300); };
 function renderCanvas(){
@@ -675,14 +694,14 @@ $("mDup").onclick = () => { const s = curSlide(); if(!s) return; const c = JSON.
 $("mUp").onclick = () => { if(cur > 0){ [deck.slides[cur - 1], deck.slides[cur]] = [deck.slides[cur], deck.slides[cur - 1]]; cur--; touch(); renderEditor(); } };
 $("mDown").onclick = () => { if(cur < deck.slides.length - 1){ [deck.slides[cur + 1], deck.slides[cur]] = [deck.slides[cur], deck.slides[cur + 1]]; cur++; touch(); renderEditor(); } };
 $("mDel").onclick = () => { if(curSlide()) deleteSlide(cur); };
-$("addBlank").onclick = $("newBlank").onclick = () => insertSlide(makeSlide("blank"));
+$("addBlank").onclick = $("newBlank").onclick = () => insertSlide(titleSlide());
 $("msgBtn").onclick = () => { insertSlide(makeSlide("title")); $("slideLabel").focus(); $("slideLabel").select(); };
 $("edLeftHide").onclick = () => { data.edLeftHidden = true; save(); $("editor").classList.add("noLeft"); };
 $("edLeftShow").onclick = () => { data.edLeftHidden = false; save(); $("editor").classList.remove("noLeft"); };
 $("edDockAdd").onclick = $("edToolsBtn").onclick = () => toolPicker_("Add a tool to your panel", id => { if(data.edLeftHidden) $("edLeftShow").click(); dockTool(id); });
 $("addSlide").onclick = () => {
   const opts = [
-    ["blank","Blank slide","Add text, shapes, stickies and pictures"],["title","Message slide","A big centered message"],["text","Text & list","A heading with notes or a list"],
+    ["titleSlide","Title slide","A big title and a subtitle"],["blank","Empty slide","Nothing on it. Add text, shapes, stickies and pictures"],["title","Message slide","A big centered message"],["text","Text & list","A heading with notes or a list"],
     ["file","Photo, video or PDF","From this computer. Each PDF page becomes a slide"],["gslides","Google Slides","Paste a Google Slides link"],["video","YouTube video","Paste a YouTube link"],["link","Website or document","Google Docs, Drive, Canva, Vimeo, websites"]];
   const d = $("dlg");
   d.innerHTML = `<h3>Add a slide</h3><div class="typeGrid">${opts.map(([t, n, x]) => `<button data-type="${t}"><b>${n}</b><small>${x}</small></button>`).join("")}</div><div class="dlgBtns"><button class="btn" id="dX">Cancel</button></div>`;
@@ -690,7 +709,7 @@ $("addSlide").onclick = () => {
     d.close(); const t = b.dataset.type;
     if(t === "file") $("upFile").click();
     else if(["gslides","video","link"].includes(t)){ $("linkUrl").focus(); $("linkUrl").placeholder = t === "gslides" ? "Paste your Google Slides link here, then press Add slide" : t === "video" ? "Paste a YouTube link here, then press Add slide" : "Paste the link here, then press Add slide"; }
-    else insertSlide(makeSlide(t));
+    else insertSlide(t === "titleSlide" ? titleSlide() : makeSlide(t));
   });
   $("dX").onclick = () => d.close();
   d.showModal();
@@ -1063,6 +1082,23 @@ $("inkColors").querySelectorAll("[data-c]").forEach(b => b.onclick = () => {
   P.color = b.dataset.c; $("inkColors").querySelectorAll("[data-c]").forEach(x => x.classList.toggle("on", x === b));
   if(P.tool === "pointer" || P.tool === "eraser") setInk("pen");
 });
+// Thickness: a multiplier on INK_STYLE.w, remembered separately for pen, pencil and highlighter
+const INK_SIZES = [[.5, "Thin"], [1, "Medium"], [2, "Thick"], [3.5, "Extra thick"]];
+const inkSizeOf = t => ((data.inkSize || {})[t]) || 1;
+const sizeTool = () => INK_STYLE[P.tool] ? P.tool : "pen";
+$("inkSizes").innerHTML = INK_SIZES.map(([m, n]) => `<button data-s="${m}" title="${n}"><i></i></button>`).join("");
+$("inkSizes").querySelectorAll("[data-s]").forEach(b => b.onclick = () => {
+  if(!INK_STYLE[P.tool]) setInk("pen");
+  data.inkSize = Object.assign({}, data.inkSize, {[P.tool]:+b.dataset.s}); save(); paintSizes();
+});
+function paintSizes(){
+  const t = sizeTool(), st = INK_STYLE[t];
+  $("inkSizes").querySelectorAll("[data-s]").forEach(b => {
+    const m = +b.dataset.s, d = Math.round(Math.max(3, Math.min(24, st.w * m * 1400)));   // dot ≈ line on a typical screen
+    Object.assign(b.querySelector("i").style, {width:d + "px", height:d + "px", opacity:st.a, borderRadius:t === "highlight" ? "2px" : "50%"});
+    b.classList.toggle("on", m === inkSizeOf(t));
+  });
+}
 $("inkBar").querySelectorAll("[data-ink]").forEach(b => b.onclick = () => setInk(b.dataset.ink));
 $("inkBar").querySelectorAll("[data-act]").forEach(b => b.onclick = () => {
   const a = b.dataset.act;
@@ -1077,6 +1113,7 @@ function setInk(t){
   $("inkBar").querySelectorAll("[data-ink]").forEach(b => b.classList.toggle("on", b.dataset.ink === t));
   $("ink").classList.toggle("off", t === "pointer");
   $("ink").style.cursor = t === "eraser" ? "cell" : "crosshair";
+  paintSizes();
 }
 function setFocus(on){
   P.focus = on; $("spot").hidden = !on;
@@ -1103,7 +1140,7 @@ function drawInk(){
   if(!s || !s.ink) return;
   s.ink.forEach(l => {
     const st = INK_STYLE[l.t] || INK_STYLE.pen;
-    ctx.save(); ctx.globalAlpha = st.a; ctx.strokeStyle = ctx.fillStyle = l.c; ctx.lineWidth = Math.max(1, st.w * c.width);
+    ctx.save(); ctx.globalAlpha = st.a; ctx.strokeStyle = ctx.fillStyle = l.c; ctx.lineWidth = Math.max(1, st.w * (l.s || 1) * c.width);
     ctx.lineCap = l.t === "highlight" ? "square" : "round"; ctx.lineJoin = "round";
     const pts = l.p;
     if(pts.length === 1){ ctx.beginPath(); ctx.arc(pts[0][0] * c.width, pts[0][1] * c.height, ctx.lineWidth / 2, 0, 7); ctx.fill(); }
@@ -1125,7 +1162,7 @@ const inkPt = e => { const r = $("ink").getBoundingClientRect(); return [Math.ro
 function eraseAt(pt){
   const s = deck.slides[cur]; if(!s.ink) return;
   const r = $("ink").getBoundingClientRect(), tol = 14;
-  const near = l => l.p.some(q => Math.hypot((q[0] - pt[0]) * r.width, (q[1] - pt[1]) * r.height) < tol + (INK_STYLE[l.t] || INK_STYLE.pen).w * r.width / 2);
+  const near = l => l.p.some(q => Math.hypot((q[0] - pt[0]) * r.width, (q[1] - pt[1]) * r.height) < tol + (INK_STYLE[l.t] || INK_STYLE.pen).w * (l.s || 1) * r.width / 2);
   const keep = s.ink.filter(l => !near(l));
   if(keep.length !== s.ink.length){ s.ink = keep; drawInk(); }
 }
@@ -1135,7 +1172,7 @@ ink.addEventListener("pointerdown", e => {
   e.preventDefault(); ink.setPointerCapture(e.pointerId);
   const s = deck.slides[cur]; pushUndo(s); s.ink = s.ink || [];
   if(P.tool === "eraser"){ P.erasing = true; eraseAt(inkPt(e)); return; }
-  P.line = {t:P.tool, c:P.tool === "highlight" && P.color === "#e0412f" ? "#f2d600" : P.color, p:[inkPt(e)]};
+  P.line = {t:P.tool, c:P.tool === "highlight" && P.color === "#e0412f" ? "#f2d600" : P.color, s:inkSizeOf(P.tool), p:[inkPt(e)]};
   s.ink.push(P.line); drawInk();
 });
 ink.addEventListener("pointermove", e => {
